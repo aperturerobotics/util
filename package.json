@@ -1,0 +1,64 @@
+{
+  "name": "@aperturerobotics/util",
+  "description": "Utilities and experimental data structures.",
+  "version": "0.0.0",
+  "license": "MIT",
+  "author": {
+    "name": "Aperture Robotics LLC.",
+    "email": "support@aperture.us",
+    "url": "http://aperture.us"
+  },
+  "contributors": [
+    {
+      "name": "Christian Stewart",
+      "email": "christian@aperture.us",
+      "url": "http://github.com/paralin"
+    }
+  ],
+  "repository": {
+    "url": "git@github.com:aperturerobotics/util.git"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json --noEmit false --module ES6 --target es2022 --outDir ./dist/",
+    "check": "npm run typecheck",
+    "typecheck": "tsc --noEmit",
+    "deps": "depcheck --ignores bufferutil,utf-8-validate,starpc,ts-proto,ts-poet,esbuild,@aperturerobotics/ts-common",
+    "codegen": "npm run gen",
+    "ci": "npm run build && npm run lint:js && npm run lint:go",
+    "format": "prettier --write './!(vendor|dist)/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
+    "gen": "make genproto",
+    "test": "make test && npm run check && npm run test:js",
+    "test:js": "echo No JS tests.",
+    "demo": "make demo",
+    "lint": "npm run lint:go && npm run lint:js",
+    "lint:go": "make lint",
+    "lint:js": "eslint -c .eslintrc.js --ext .ts ./**/*.ts",
+    "patch": "patch-package --use-yarn --patch-dir ./node_modules/@aperturerobotics/ts-common/patches",
+    "prepare": "npm run patch && go mod vendor",
+    "precommit": "npm run format"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true
+  },
+  "devDependencies": {
+    "@aperturerobotics/ts-common": "0.2.4",
+    "@typescript-eslint/eslint-plugin": "^5.40.0",
+    "@typescript-eslint/parser": "^5.40.0",
+    "depcheck": "^1.4.3",
+    "esbuild": "^0.15.10",
+    "eslint": "^8.25.0",
+    "eslint-config-prettier": "^8.5.0",
+    "patch-package": "^6.4.7",
+    "prettier": "^2.7.1",
+    "ts-proto": "^1.127.0",
+    "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "bufferutil": "^4.0.6",
+    "long": "^5.2.0",
+    "protobufjs": "^7.1.2",
+    "starpc": "^0.12.0",
+    "utf-8-validate": "^5.0.9"
+  }
+}
