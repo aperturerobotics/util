@@ -14,6 +14,7 @@ Various utilities for Go and TypeScript including:
  - [ccontainer]: concurrent container for objects
  - [debounce-fswatcher]: debounce fs watcher events
  - [exec]: wrapper around Go os exec
+ - [iosizer]: read/writer with metrics for size
  - [keyed]: key/value based routine management
  - [linkedlist]: linked list with head/tail
  - [prng]: psuedorandom generator with seed
@@ -26,6 +27,7 @@ Various utilities for Go and TypeScript including:
 [ccontainer]: ./ccontainer
 [debounce-fswatcher]: ./debounce-fswatcher
 [exec]: ./exec
+[iosizer]: ./iosizer
 [keyed]: ./keyed
 [linkedlist]: ./linkedlist
 [prng]: ./prng
