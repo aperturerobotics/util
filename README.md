@@ -10,6 +10,7 @@
 Various utilities for Go and TypeScript including:
 
  - [backoff]: configurable backoff
+ - [broadcast]: channel-based broadcast (similar to sync.Cond)
  - [ccontainer]: concurrent container for objects
  - [debounce-fswatcher]: debounce fs watcher events
  - [exec]: wrapper around Go os exec
