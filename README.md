@@ -15,6 +15,7 @@ Various utilities for Go and TypeScript including:
  - [commonprefix]: find common prefix between strings
  - [debounce-fswatcher]: debounce fs watcher events
  - [exec]: wrapper around Go os exec
+ - [iocloser]: wrap reader/writer with a close function
  - [iosizer]: read/writer with metrics for size
  - [keyed]: key/value based routine management
  - [linkedlist]: linked list with head/tail
@@ -29,6 +30,7 @@ Various utilities for Go and TypeScript including:
 [commonprefix]: ./commonprefix
 [debounce-fswatcher]: ./debounce-fswatcher
 [exec]: ./exec
+[iocloser]: ./iocloser
 [iosizer]: ./iosizer
 [keyed]: ./keyed
 [linkedlist]: ./linkedlist
