@@ -30,6 +30,10 @@ type RefCount[T comparable] struct {
 	resolveCtx context.Context
 	// resolveCtxCancel cancels resolveCtx
 	resolveCtxCancel context.CancelFunc
+	// value is the current value
+	value T
+	// valueErr is the current value error.
+	valueErr error
 	// valueRel releases the current value.
 	valueRel func()
 }
@@ -111,10 +115,10 @@ func (r *RefCount[T]) AddRef(cb func(val T, err error)) *Ref[T] {
 		r.startResolve()
 	} else {
 		var empty T
-		if val := r.target.GetValue(); val != empty {
+		if val := r.value; val != empty {
 			nref.cb(val, nil)
-		} else if err := r.targetErr.GetValue(); err != nil && *err != nil {
-			nref.cb(empty, *err)
+		} else if err := r.valueErr; err != nil {
+			nref.cb(empty, err)
 		}
 	}
 	r.mtx.Unlock()
@@ -188,7 +192,10 @@ func (r *RefCount[T]) shutdown() {
 		r.valueRel = nil
 	}
 	var empty T
-	r.target.SetValue(empty)
+	r.value = empty
+	if r.target != nil {
+		r.target.SetValue(empty)
+	}
 }
 
 // startResolve starts the resolve goroutine.
@@ -221,6 +228,8 @@ func (r *RefCount[T]) resolve(ctx context.Context) {
 	}
 
 	// store the value and/or error
+	r.value, r.valueErr = val, err
+	r.valueRel = valRel
 	if err != nil {
 		if r.targetErr != nil {
 			r.targetErr.SetValue(&err)
@@ -233,7 +242,6 @@ func (r *RefCount[T]) resolve(ctx context.Context) {
 			r.target.SetValue(val)
 		}
 	}
-	r.valueRel = valRel
 	for ref := range r.refs {
 		if ref.cb != nil {
 			ref.cb(val, err)
