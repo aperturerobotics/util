@@ -19,6 +19,7 @@ Various utilities for Go and TypeScript including:
  - [iosizer]: read/writer with metrics for size
  - [keyed]: key/value based routine management
  - [linkedlist]: linked list with head/tail
+ - [padding]: pad / unpad a byte array slice
  - [prng]: psuedorandom generator with seed
  - [promise]: promise mechanics for Go (like JS)
  - [refcount]: reference counter ccontainer
@@ -34,6 +35,7 @@ Various utilities for Go and TypeScript including:
 [iosizer]: ./iosizer
 [keyed]: ./keyed
 [linkedlist]: ./linkedlist
+[padding]: ./padding
 [prng]: ./prng
 [promise]: ./promise
 [refcount]: ./refcount
