@@ -66,42 +66,9 @@ func NewRefCount[T comparable](
 	}
 }
 
-// AccessRefCount adds a reference to the RefCount while the fn executes.
-func AccessRefCount[T comparable](
-	ctx context.Context,
-	rc *RefCount[T],
-	cb func(T) error,
-) error {
-	valCh := make(chan T, 1)
-	errCh := make(chan error, 1)
-	ref := rc.AddRef(func(val T, err error) {
-		if err != nil {
-			select {
-			case errCh <- err:
-			default:
-			}
-		} else {
-			select {
-			case valCh <- val:
-			default:
-			}
-		}
-	})
-	defer ref.Release()
-
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case err := <-errCh:
-		return err
-	case val := <-valCh:
-		return cb(val)
-	}
-}
-
-// WaitRefCount waits for a RefCount container handling errors.
+// WaitRefCountContainer waits for a RefCount container handling errors.
 // targetErr can be nil
-func WaitRefCount[T comparable](
+func WaitRefCountContainer[T comparable](
 	ctx context.Context,
 	target *ccontainer.CContainer[T],
 	targetErr *ccontainer.CContainer[*error],
@@ -152,6 +119,49 @@ func (r *RefCount[T]) AddRef(cb func(val T, err error)) *Ref[T] {
 	}
 	r.mtx.Unlock()
 	return nref
+}
+
+// Wait adds a reference and waits for a value.
+// Returns the value, reference, and any error.
+// If err != nil, value and reference will be nil.
+func (r *RefCount[T]) Wait(ctx context.Context) (T, *Ref[T], error) {
+	var done atomic.Bool
+	valCh := make(chan T, 1)
+	errCh := make(chan error, 1)
+	ref := r.AddRef(func(val T, err error) {
+		if done.Swap(true) {
+			return
+		}
+		if err != nil {
+			errCh <- err
+		} else {
+			valCh <- val
+		}
+	})
+	select {
+	case <-ctx.Done():
+		ref.Release()
+		var empty T
+		return empty, nil, context.Canceled
+	case err := <-errCh:
+		ref.Release()
+		var empty T
+		return empty, nil, err
+	case val := <-valCh:
+		return val, ref, nil
+	}
+}
+
+// Access adds a reference, waits for a value, and calls the callback.
+// Releases the reference once the callback has returned.
+func (r *RefCount[T]) Access(ctx context.Context, cb func(T) error) error {
+	val, rel, err := r.Wait(ctx)
+	if err != nil {
+		return err
+	}
+	defer rel.Release()
+	return cb(val)
+
 }
 
 // removeRef removes a reference and shuts down if no refs remain.
