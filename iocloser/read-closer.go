@@ -1,4 +1,4 @@
-package closer
+package iocloser
 
 import (
 	"io"
