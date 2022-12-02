@@ -208,13 +208,16 @@ func (r *RefCount[T]) startResolve() {
 // resolve is the goroutine to resolve the value to the container.
 func (r *RefCount[T]) resolve(ctx context.Context) {
 	val, valRel, err := r.resolver(ctx)
+
 	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
 	// assert we are still the resolver
 	if r.resolveCtx != ctx {
 		if valRel != nil {
 			valRel()
 		}
-		r.mtx.Unlock()
+		return
 	}
 
 	// store the value and/or error
@@ -236,5 +239,4 @@ func (r *RefCount[T]) resolve(ctx context.Context) {
 			ref.cb(val, err)
 		}
 	}
-	r.mtx.Unlock()
 }
