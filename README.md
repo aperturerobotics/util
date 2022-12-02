@@ -22,6 +22,7 @@ Various utilities for Go and TypeScript including:
  - [scrub]: zero a buffer after usage
 
 [backoff]: ./backoff
+[broadcast]: ./broadcast
 [ccontainer]: ./ccontainer
 [debounce-fswatcher]: ./debounce-fswatcher
 [exec]: ./exec
