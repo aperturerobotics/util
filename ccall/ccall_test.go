@@ -20,7 +20,7 @@ func TestCallConcurrently_Success(t *testing.T) {
 		})
 	}
 
-	if err := CallConcurrently(context.Background(), fns); err != nil {
+	if err := CallConcurrently(context.Background(), fns...); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -44,7 +44,7 @@ func TestCallConcurrently_Err(t *testing.T) {
 		})
 	}
 
-	if err := CallConcurrently(context.Background(), fns); err != errRet {
+	if err := CallConcurrently(context.Background(), fns...); err != errRet {
 		t.Fatalf("expected error but got %v", err)
 	}
 }

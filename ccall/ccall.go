@@ -11,7 +11,7 @@ import (
 type CallConcurrentlyFunc = func(ctx context.Context) error
 
 // CallConcurrently calls multiple functions concurrently and waits for exit or error.
-func CallConcurrently(ctx context.Context, fns []CallConcurrentlyFunc) error {
+func CallConcurrently(ctx context.Context, fns ...CallConcurrentlyFunc) error {
 	if len(fns) == 0 {
 		return nil
 	}
