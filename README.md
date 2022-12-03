@@ -11,6 +11,7 @@ Various utilities for Go and TypeScript including:
 
  - [backoff]: configurable backoff
  - [broadcast]: channel-based broadcast (similar to sync.Cond)
+ - [ccall]: call a set of functions concurrently and wait for error or exit
  - [ccontainer]: concurrent container for objects
  - [commonprefix]: find common prefix between strings
  - [debounce-fswatcher]: debounce fs watcher events
@@ -27,6 +28,7 @@ Various utilities for Go and TypeScript including:
 
 [backoff]: ./backoff
 [broadcast]: ./broadcast
+[ccall]: ./ccall
 [ccontainer]: ./ccontainer
 [commonprefix]: ./commonprefix
 [debounce-fswatcher]: ./debounce-fswatcher
