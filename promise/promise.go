@@ -63,3 +63,17 @@ func (p *Promise[T]) Await(ctx context.Context) (val T, err error) {
 		return *p.result, p.err
 	}
 }
+
+// AwaitWithErrCh waits for the result to be set or for an error to be pushed to the channel.
+func (p *Promise[T]) AwaitWithErrCh(ctx context.Context, errCh <-chan error) (val T, err error) {
+	select {
+	case <-ctx.Done():
+		var empty T
+		return empty, context.Canceled
+	case err := <-errCh:
+		var empty T
+		return empty, err
+	case <-p.done:
+		return *p.result, p.err
+	}
+}
