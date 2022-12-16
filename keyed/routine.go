@@ -18,6 +18,9 @@ type runningRoutine[T comparable] struct {
 	// ctxCancel cancels the context
 	// if nil, not running
 	ctxCancel context.CancelFunc
+	// exitedCh is closed when the routine running with ctx exits
+	// may be nil if ctx == nil
+	exitedCh <-chan struct{}
 	// routine is the routine callback
 	routine Routine
 	// data is the associated routine data
@@ -40,9 +43,10 @@ func newRunningRoutine[T comparable](k *Keyed[T], key string, routine Routine, d
 	}
 }
 
-// start starts or restarts the routine.
+// start starts or restarts the routine (if not running).
 // expects k.mtx to be locked by caller
-func (r *runningRoutine[T]) start(ctx context.Context) {
+// if waitCh != nil, waits for waitCh to be closed before fully starting.
+func (r *runningRoutine[T]) start(ctx context.Context, waitCh <-chan struct{}) {
 	if r.success || r.routine == nil {
 		return
 	}
@@ -54,29 +58,44 @@ func (r *runningRoutine[T]) start(ctx context.Context) {
 			return
 		}
 	}
-	if r.err != nil {
-		r.err = nil
-	}
+	r.err = nil
 	if r.ctxCancel != nil {
 		r.ctxCancel()
-		r.ctxCancel = nil
-		r.ctx = nil
 	}
+	exitedCh := make(chan struct{})
+	r.exitedCh = exitedCh
 	r.ctx, r.ctxCancel = context.WithCancel(ctx)
-	go r.execute(r.ctx, r.ctxCancel)
+	go r.execute(r.ctx, r.ctxCancel, exitedCh, waitCh)
 }
 
 // execute executes the routine.
-func (r *runningRoutine[T]) execute(ctx context.Context, cancel context.CancelFunc) {
-	err := r.routine(ctx)
+func (r *runningRoutine[T]) execute(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	exitedCh chan struct{},
+	waitCh <-chan struct{},
+) {
+	var err error
+	if waitCh != nil {
+		select {
+		case <-ctx.Done():
+			err = context.Canceled
+		case <-waitCh:
+		}
+	}
+
+	if err == nil {
+		err = r.routine(ctx)
+	}
 	cancel()
+	close(exitedCh)
 
 	r.k.mtx.Lock()
 	if r.ctx == ctx {
 		r.err = err
 		r.success = err == nil
-		r.ctxCancel = nil
-		r.ctx = nil
+		r.ctxCancel, r.ctxCancel = nil, nil
+		r.exitedCh = nil
 		for i := len(r.k.exitedCbs) - 1; i >= 0; i-- {
 			// run after unlocking mtx
 			defer (r.k.exitedCbs[i])(r.key, r.routine, r.data, r.err)

@@ -87,13 +87,14 @@ func (k *Keyed[T]) SetContext(ctx context.Context, restart bool) {
 		if sameCtx && rr.err == nil {
 			continue
 		}
+		rr.ctx = nil
+		if rr.ctxCancel != nil {
+			rr.ctxCancel()
+			rr.ctxCancel = nil
+		}
 		if rr.err == nil || restart {
-			if rr.ctxCancel != nil {
-				rr.ctxCancel()
-				rr.ctx, rr.ctxCancel = nil, nil
-			}
 			if ctx != nil {
-				rr.start(ctx)
+				rr.start(ctx, rr.exitedCh)
 			}
 		}
 	}
@@ -159,7 +160,7 @@ func (k *Keyed[T]) SetKey(key string, restart bool) bool {
 	}
 	if !existed || restart {
 		if k.ctx != nil {
-			v.start(k.ctx)
+			v.start(k.ctx, v.exitedCh)
 		}
 	}
 	return existed
@@ -179,7 +180,7 @@ func (k *Keyed[T]) RemoveKey(key string) bool {
 }
 
 // SyncKeys synchronizes the list of running routines with the given list.
-// If restart=true, restarts any failed routines in the failed state.
+// If restart=true, restarts any routines in the failed state.
 func (k *Keyed[T]) SyncKeys(keys []string, restart bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
@@ -207,15 +208,14 @@ func (k *Keyed[T]) SyncKeys(keys []string, restart bool) {
 		routines[key] = v
 		if !existed || restart {
 			if k.ctx != nil {
-				v.start(k.ctx)
+				v.start(k.ctx, v.exitedCh)
 			}
 		}
 	}
 	for key, rr := range k.routines {
-		if _, ok := routines[key]; ok {
-			continue
+		if _, ok := routines[key]; !ok {
+			rr.remove()
 		}
-		rr.remove()
 	}
 }
 
@@ -268,11 +268,12 @@ func (k *Keyed[T]) ResetRoutine(key string, conds ...func(T) bool) (existed bool
 	if v.ctxCancel != nil {
 		v.ctxCancel()
 	}
+	prevExitedCh := v.exitedCh
 	routine, data := k.ctorCb(key)
 	v = newRunningRoutine(k, key, routine, data)
 	k.routines[key] = v
 	if k.ctx != nil {
-		v.start(k.ctx)
+		v.start(k.ctx, prevExitedCh)
 	}
 
 	return true, true
