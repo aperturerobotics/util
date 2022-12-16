@@ -82,6 +82,12 @@ func (r *runningRoutine[T]) execute(
 			err = context.Canceled
 		case <-waitCh:
 		}
+	} else {
+		select {
+		case <-ctx.Done():
+			err = context.Canceled
+		default:
+		}
 	}
 
 	if err == nil {
