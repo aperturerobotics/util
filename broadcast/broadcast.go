@@ -6,6 +6,8 @@ import "sync"
 // https://github.com/anacrolix/missinggo/blob/master/chancond.go
 
 // Broadcast implements notifying waiters via a channel.
+//
+// The zero-value of this struct is valid.
 type Broadcast struct {
 	mtx sync.Mutex
 	ch  chan struct{}

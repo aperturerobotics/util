@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// TestPromise tests the Promise mechanics.
-func TestPromise(t *testing.T) {
+// TestPromiseContainer tests the PromiseContainer mechanics.
+func TestPromiseContainer(t *testing.T) {
 	ctx := context.Background()
 	err := CheckPromiseLike(ctx, func() PromiseLike[int] {
 		return NewPromise[int]()

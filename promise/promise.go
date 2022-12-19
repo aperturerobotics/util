@@ -57,8 +57,7 @@ func (p *Promise[T]) SetResult(val T, err error) bool {
 func (p *Promise[T]) Await(ctx context.Context) (val T, err error) {
 	select {
 	case <-ctx.Done():
-		var empty T
-		return empty, context.Canceled
+		return val, context.Canceled
 	case <-p.done:
 		return *p.result, p.err
 	}
@@ -68,12 +67,13 @@ func (p *Promise[T]) Await(ctx context.Context) (val T, err error) {
 func (p *Promise[T]) AwaitWithErrCh(ctx context.Context, errCh <-chan error) (val T, err error) {
 	select {
 	case <-ctx.Done():
-		var empty T
-		return empty, context.Canceled
+		return val, context.Canceled
 	case err := <-errCh:
-		var empty T
-		return empty, err
+		return val, err
 	case <-p.done:
 		return *p.result, p.err
 	}
 }
+
+// _ is a type assertion
+var _ PromiseLike[bool] = ((*Promise[bool])(nil))
