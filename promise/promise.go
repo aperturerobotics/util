@@ -75,5 +75,18 @@ func (p *Promise[T]) AwaitWithErrCh(ctx context.Context, errCh <-chan error) (va
 	}
 }
 
+// AwaitWithCancelCh waits for the result to be set or for the channel to be written to and/or closed.
+// Returns nil, context.Canceled if the cancelCh reads.
+func (p *Promise[T]) AwaitWithCancelCh(ctx context.Context, cancelCh <-chan struct{}) (val T, err error) {
+	select {
+	case <-ctx.Done():
+		return val, context.Canceled
+	case <-cancelCh:
+		return val, context.Canceled
+	case <-p.done:
+		return *p.result, p.err
+	}
+}
+
 // _ is a type assertion
 var _ PromiseLike[bool] = ((*Promise[bool])(nil))

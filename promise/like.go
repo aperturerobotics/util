@@ -17,6 +17,9 @@ type PromiseLike[T any] interface {
 	Await(ctx context.Context) (val T, err error)
 	// AwaitWithErrCh waits for the result to be set or for an error to be pushed to the channel.
 	AwaitWithErrCh(ctx context.Context, errCh <-chan error) (val T, err error)
+	// AwaitWithCancelCh waits for the result to be set or for the channel to be written to and/or closed.
+	// CancelCh could be a context.Done() channel.
+	AwaitWithCancelCh(ctx context.Context, errCh <-chan struct{}) (val T, err error)
 }
 
 // CheckPromiseLike runs some tests against the PromiseLike.

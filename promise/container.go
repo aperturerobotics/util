@@ -14,7 +14,7 @@ type PromiseContainer[T any] struct {
 	// mtx guards below fields
 	mtx sync.Mutex
 	// promise contains the current promise.
-	promise *Promise[T]
+	promise PromiseLike[T]
 	// replaced is broadcasted when the promise is replaced.
 	replaced broadcast.Broadcast
 }
@@ -26,7 +26,7 @@ func NewPromiseContainer[T any]() *PromiseContainer[T] {
 
 // SetPromise updates the Promise contained in the PromiseContainer.
 // Note: this does not do anything with the old promise.
-func (c *PromiseContainer[T]) SetPromise(p *Promise[T]) {
+func (c *PromiseContainer[T]) SetPromise(p PromiseLike[T]) {
 	c.mtx.Lock()
 	c.promise = p
 	c.replaced.Broadcast()
@@ -35,16 +35,13 @@ func (c *PromiseContainer[T]) SetPromise(p *Promise[T]) {
 
 // SetResult sets the result of the promise.
 //
-// Returns false if the result was already set.
+// Overwrites the existing promise with a new promise.
 func (p *PromiseContainer[T]) SetResult(val T, err error) bool {
 	p.mtx.Lock()
-	setResult := p.promise == nil || !p.promise.isDone.Load()
-	if setResult {
-		p.promise = NewPromiseWithResult[T](val, err)
-		p.replaced.Broadcast()
-	}
+	p.promise = NewPromiseWithResult(val, err)
+	p.replaced.Broadcast()
 	p.mtx.Unlock()
-	return setResult
+	return true
 }
 
 // Await waits for the result to be set or for ctx to be canceled.
@@ -63,13 +60,18 @@ func (p *PromiseContainer[T]) Await(ctx context.Context) (val T, err error) {
 			}
 		}
 
-		select {
-		case <-ctx.Done():
-			return val, context.Canceled
-		case <-replaceCh:
-			continue
-		case <-promise.done:
-			return *promise.result, promise.err
+		val, valErr := promise.AwaitWithCancelCh(ctx, replaceCh)
+		if valErr == nil {
+			return val, nil
+		}
+		if valErr == context.Canceled {
+			select {
+			case <-ctx.Done():
+				return val, context.Canceled
+			default:
+			}
+		} else {
+			return val, valErr
 		}
 	}
 }
@@ -88,19 +90,57 @@ func (p *PromiseContainer[T]) AwaitWithErrCh(ctx context.Context, errCh <-chan e
 			case err := <-errCh:
 				return val, err
 			case <-replaceCh:
-				continue
 			}
+			continue
 		}
 
-		select {
-		case <-ctx.Done():
-			return val, context.Canceled
-		case err := <-errCh:
-			return val, err
-		case <-replaceCh:
+		val, valErr := promise.AwaitWithCancelCh(ctx, replaceCh)
+		if valErr == nil {
+			return val, nil
+		}
+		if valErr == context.Canceled {
+			select {
+			case <-ctx.Done():
+				return val, context.Canceled
+			default:
+			}
+		} else {
+			return val, valErr
+		}
+	}
+}
+
+// AwaitWithCancelCh waits for the result to be set or for the channel to be written to and/or closed.
+// CancelCh could be a context.Done() channel.
+func (p *PromiseContainer[T]) AwaitWithCancelCh(ctx context.Context, cancelCh <-chan struct{}) (val T, err error) {
+	for {
+		p.mtx.Lock()
+		replaceCh := p.replaced.GetWaitCh()
+		promise := p.promise
+		p.mtx.Unlock()
+		if promise == nil {
+			select {
+			case <-ctx.Done():
+				return val, context.Canceled
+			case <-cancelCh:
+				return val, err
+			case <-replaceCh:
+			}
 			continue
-		case <-promise.done:
-			return *promise.result, promise.err
+		}
+
+		val, valErr := promise.AwaitWithCancelCh(ctx, replaceCh)
+		if valErr == nil {
+			return val, nil
+		}
+		if valErr == context.Canceled {
+			select {
+			case <-ctx.Done():
+				return val, context.Canceled
+			default:
+			}
+		} else {
+			return val, valErr
 		}
 	}
 }
