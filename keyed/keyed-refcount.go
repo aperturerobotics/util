@@ -108,6 +108,14 @@ func (k *KeyedRefCount[T]) ResetRoutine(key string, conds ...func(T) bool) (exis
 	return k.keyed.ResetRoutine(key, conds...)
 }
 
+// RestartRoutine restarts the given routine after checking the condition functions.
+// If any return true, and the routine is running, restarts the instance.
+//
+// If len(conds) == 0, always resets the given key.
+func (k *KeyedRefCount[T]) RestartRoutine(key string, conds ...func(T) bool) (existed bool, reset bool) {
+	return k.keyed.RestartRoutine(key, conds...)
+}
+
 // AddKeyRef adds a reference to the given key.
 // Returns if the key already existed or not.
 func (k *KeyedRefCount[T]) AddKeyRef(key string) (ref *KeyedRef[T], existed bool) {

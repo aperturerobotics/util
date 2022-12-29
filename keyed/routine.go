@@ -29,6 +29,8 @@ type runningRoutine[T comparable] struct {
 	err error
 	// success indicates the routine succeeded
 	success bool
+	// exited indicates the routine exited
+	exited bool
 	// deferRemove is set if we are waiting to remove this.
 	deferRemove *time.Timer
 }
@@ -46,11 +48,12 @@ func newRunningRoutine[T comparable](k *Keyed[T], key string, routine Routine, d
 // start starts or restarts the routine (if not running).
 // expects k.mtx to be locked by caller
 // if waitCh != nil, waits for waitCh to be closed before fully starting.
-func (r *runningRoutine[T]) start(ctx context.Context, waitCh <-chan struct{}) {
-	if r.success || r.routine == nil {
+// if forceRestart is set, cancels the existing routine.
+func (r *runningRoutine[T]) start(ctx context.Context, waitCh <-chan struct{}, forceRestart bool) {
+	if (!forceRestart && r.success) || r.routine == nil {
 		return
 	}
-	if r.ctx != nil {
+	if !forceRestart && r.ctx != nil && !r.exited {
 		select {
 		case <-r.ctx.Done():
 		default:
@@ -58,11 +61,12 @@ func (r *runningRoutine[T]) start(ctx context.Context, waitCh <-chan struct{}) {
 			return
 		}
 	}
-	r.err = nil
 	if r.ctxCancel != nil {
 		r.ctxCancel()
 	}
 	exitedCh := make(chan struct{})
+	r.err = nil
+	r.success, r.exited = false, false
 	r.exitedCh = exitedCh
 	r.ctx, r.ctxCancel = context.WithCancel(ctx)
 	go r.execute(r.ctx, r.ctxCancel, exitedCh, waitCh)
@@ -100,7 +104,7 @@ func (r *runningRoutine[T]) execute(
 	if r.ctx == ctx {
 		r.err = err
 		r.success = err == nil
-		r.ctxCancel, r.ctxCancel = nil, nil
+		r.exited = true
 		r.exitedCh = nil
 		for i := len(r.k.exitedCbs) - 1; i >= 0; i-- {
 			// run after unlocking mtx

@@ -94,7 +94,7 @@ func (k *Keyed[T]) SetContext(ctx context.Context, restart bool) {
 		}
 		if rr.err == nil || restart {
 			if ctx != nil {
-				rr.start(ctx, rr.exitedCh)
+				rr.start(ctx, rr.exitedCh, false)
 			}
 		}
 	}
@@ -160,7 +160,7 @@ func (k *Keyed[T]) SetKey(key string, restart bool) bool {
 	}
 	if !existed || restart {
 		if k.ctx != nil {
-			v.start(k.ctx, v.exitedCh)
+			v.start(k.ctx, v.exitedCh, false)
 		}
 	}
 	return existed
@@ -208,7 +208,7 @@ func (k *Keyed[T]) SyncKeys(keys []string, restart bool) {
 		routines[key] = v
 		if !existed || restart {
 			if k.ctx != nil {
-				v.start(k.ctx, v.exitedCh)
+				v.start(k.ctx, v.exitedCh, false)
 			}
 		}
 	}
@@ -236,6 +236,7 @@ func (k *Keyed[T]) GetKey(key string) (Routine, T) {
 
 // ResetRoutine resets the given routine after checking the condition functions.
 // If any return true, resets the instance.
+// Resetting the instance constructs a new Routine with the routine constructor.
 //
 // If len(conds) == 0, always resets the given key.
 func (k *Keyed[T]) ResetRoutine(key string, conds ...func(T) bool) (existed bool, reset bool) {
@@ -273,7 +274,52 @@ func (k *Keyed[T]) ResetRoutine(key string, conds ...func(T) bool) (existed bool
 	v = newRunningRoutine(k, key, routine, data)
 	k.routines[key] = v
 	if k.ctx != nil {
-		v.start(k.ctx, prevExitedCh)
+		v.start(k.ctx, prevExitedCh, false)
+	}
+
+	return true, true
+}
+
+// RestartRoutine restarts the given routine after checking the condition functions.
+// If any return true, and the routine is running, restarts the instance.
+//
+// If len(conds) == 0, always resets the given key.
+func (k *Keyed[T]) RestartRoutine(key string, conds ...func(T) bool) (existed bool, reset bool) {
+	k.mtx.Lock()
+	defer k.mtx.Unlock()
+
+	if k.ctx != nil {
+		select {
+		case <-k.ctx.Done():
+			k.ctx = nil
+		default:
+		}
+	}
+
+	v, existed := k.routines[key]
+	if !existed {
+		return false, false
+	}
+	if k.ctx == nil {
+		return true, false
+	}
+	anyMatched := len(conds) == 0
+	for _, cond := range conds {
+		if cond != nil && cond(v.data) {
+			anyMatched = true
+			break
+		}
+	}
+	if !anyMatched {
+		return true, false
+	}
+
+	if v.ctxCancel != nil {
+		v.ctxCancel()
+	}
+	prevExitedCh := v.exitedCh
+	if k.ctx != nil {
+		v.start(k.ctx, prevExitedCh, true)
 	}
 
 	return true, true
