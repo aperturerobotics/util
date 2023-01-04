@@ -142,9 +142,9 @@ func (k *Keyed[T]) GetKeysWithData() []KeyWithData[T] {
 }
 
 // SetKey inserts the given key into the set, if it doesn't already exist.
-// If restart=true, restarts if routines is currently in the failed state.
+// If start=true, restarts the routine from any stopped or failed state.
 // Returns if it existed already or not.
-func (k *Keyed[T]) SetKey(key string, restart bool) (T, bool) {
+func (k *Keyed[T]) SetKey(key string, start bool) (T, bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -158,7 +158,7 @@ func (k *Keyed[T]) SetKey(key string, restart bool) (T, bool) {
 		_ = v.deferRemove.Stop()
 		v.deferRemove = nil
 	}
-	if !existed || restart {
+	if !existed || start {
 		if k.ctx != nil {
 			v.start(k.ctx, v.exitedCh, false)
 		}
@@ -234,8 +234,11 @@ func (k *Keyed[T]) GetKey(key string) (T, bool) {
 }
 
 // ResetRoutine resets the given routine after checking the condition functions.
-// If any return true, resets the instance.
-// Resetting the instance constructs a new Routine with the routine constructor.
+// If any of the conds functions return true, resets the instance.
+//
+// Resetting the instance constructs a new Routine and data with the constructor.
+// Note: this will overwrite the existing Data, if present!
+// In most cases RestartRoutine is actually what you want.
 //
 // If len(conds) == 0, always resets the given key.
 func (k *Keyed[T]) ResetRoutine(key string, conds ...func(T) bool) (existed bool, reset bool) {
