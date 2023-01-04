@@ -3,18 +3,20 @@ package ccontainer
 import (
 	"context"
 	"sync"
+
+	"github.com/aperturerobotics/util/broadcast"
 )
 
 // CContainer is a concurrent container.
 type CContainer[T comparable] struct {
-	mtx  sync.Mutex
-	val  T
-	wake chan struct{} // closed when val changes
+	mtx   sync.Mutex
+	val   T
+	bcast broadcast.Broadcast
 }
 
 // NewCContainer builds a CContainer with an initial value.
 func NewCContainer[T comparable](val T) *CContainer[T] {
-	return &CContainer[T]{val: val, wake: make(chan struct{})}
+	return &CContainer[T]{val: val}
 }
 
 // GetValue returns the immediate value of the container.
@@ -30,7 +32,7 @@ func (c *CContainer[T]) SetValue(val T) {
 	c.mtx.Lock()
 	if c.val != val {
 		c.val = val
-		c.wakeWaiting()
+		c.bcast.Broadcast()
 	}
 	c.mtx.Unlock()
 }
@@ -45,7 +47,7 @@ func (c *CContainer[T]) SwapValue(cb func(val T) T) T {
 		val = cb(val)
 		if val != c.val {
 			c.val = val
-			c.wakeWaiting()
+			c.bcast.Broadcast()
 		}
 	}
 	c.mtx.Unlock()
@@ -64,7 +66,7 @@ func (c *CContainer[T]) WaitValueWithValidator(
 	var emptyValue T
 	for {
 		c.mtx.Lock()
-		val, wake := c.val, c.wake
+		val, wake := c.val, c.bcast.GetWaitCh()
 		c.mtx.Unlock()
 		if valid != nil {
 			ok, err = valid(val)
@@ -117,10 +119,4 @@ func (c *CContainer[T]) WaitValueEmpty(ctx context.Context, errCh <-chan error) 
 		return v == emptyValue, nil
 	}, errCh)
 	return err
-}
-
-// wakeWaiting wakes any waiting goroutines
-func (c *CContainer[T]) wakeWaiting() {
-	close(c.wake)
-	c.wake = make(chan struct{})
 }
