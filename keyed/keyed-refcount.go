@@ -120,11 +120,8 @@ func (k *KeyedRefCount[T]) RestartRoutine(key string, conds ...func(T) bool) (ex
 func (k *KeyedRefCount[T]) AddKeyRef(key string) (ref *KeyedRef[T], data T, existed bool) {
 	k.mtx.Lock()
 	refs := k.refs[key]
-	existed = len(refs) != 0
 	nref := &KeyedRef[T]{rc: k, key: key}
-	if !existed {
-		data, existed = k.keyed.SetKey(key, true)
-	}
+	data, existed = k.keyed.SetKey(key, true)
 	refs = append(refs, nref)
 	k.refs[key] = refs
 	k.mtx.Unlock()
