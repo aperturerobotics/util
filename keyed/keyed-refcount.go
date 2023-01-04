@@ -94,9 +94,8 @@ func (k *KeyedRefCount[T]) GetKeysWithData() []KeyWithData[T] {
 	return k.keyed.GetKeysWithData()
 }
 
-// GetKey returns the routine for the given key.
-// Note: this is an instantaneous snapshot.
-func (k *KeyedRefCount[T]) GetKey(key string) (Routine, T) {
+// GetKey returns the value for the given key and if it existed.
+func (k *KeyedRefCount[T]) GetKey(key string) (T, bool) {
 	return k.keyed.GetKey(key)
 }
 
@@ -118,16 +117,16 @@ func (k *KeyedRefCount[T]) RestartRoutine(key string, conds ...func(T) bool) (ex
 
 // AddKeyRef adds a reference to the given key.
 // Returns if the key already existed or not.
-func (k *KeyedRefCount[T]) AddKeyRef(key string) (ref *KeyedRef[T], existed bool) {
+func (k *KeyedRefCount[T]) AddKeyRef(key string) (ref *KeyedRef[T], data T, existed bool) {
 	k.mtx.Lock()
 	refs := k.refs[key]
 	existed = len(refs) != 0
 	nref := &KeyedRef[T]{rc: k, key: key}
 	if !existed {
-		_ = k.keyed.SetKey(key, true)
+		data, existed = k.keyed.SetKey(key, true)
 	}
 	refs = append(refs, nref)
 	k.refs[key] = refs
 	k.mtx.Unlock()
-	return nref, existed
+	return nref, data, existed
 }

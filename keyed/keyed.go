@@ -144,7 +144,7 @@ func (k *Keyed[T]) GetKeysWithData() []KeyWithData[T] {
 // SetKey inserts the given key into the set, if it doesn't already exist.
 // If restart=true, restarts if routines is currently in the failed state.
 // Returns if it existed already or not.
-func (k *Keyed[T]) SetKey(key string, restart bool) bool {
+func (k *Keyed[T]) SetKey(key string, restart bool) (T, bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -163,7 +163,7 @@ func (k *Keyed[T]) SetKey(key string, restart bool) bool {
 			v.start(k.ctx, v.exitedCh, false)
 		}
 	}
-	return existed
+	return v.data, existed
 }
 
 // RemoveKey removes the given key from the set, if it exists.
@@ -219,19 +219,18 @@ func (k *Keyed[T]) SyncKeys(keys []string, restart bool) {
 	}
 }
 
-// GetKey returns the routine for the given key.
-// Note: this is an instantaneous snapshot.
-func (k *Keyed[T]) GetKey(key string) (Routine, T) {
+// GetKey returns the value for the given key and existed.
+func (k *Keyed[T]) GetKey(key string) (T, bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
 	v, existed := k.routines[key]
 	if !existed {
 		var empty T
-		return nil, empty
+		return empty, false
 	}
 
-	return v.routine, v.data
+	return v.data, true
 }
 
 // ResetRoutine resets the given routine after checking the condition functions.

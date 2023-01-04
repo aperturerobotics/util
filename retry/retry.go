@@ -9,15 +9,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// NewBackOff constructs a new backoff with a config.
+func NewBackOff(conf *bo.Backoff) backoff.BackOff {
+	if conf == nil {
+		conf = &bo.Backoff{}
+	}
+	return conf.Construct()
+}
+
 // DefaultBackoff returns the default backoff.
 func DefaultBackoff() backoff.BackOff {
-	return (&bo.Backoff{}).Construct()
+	return NewBackOff(nil)
 }
 
 // Retry uses a backoff to re-try a process.
 // If the process returns nil or context canceled, it exits.
 // If bo is nil, a default one is created.
-// The defaults are: 500Ms initial backoff,
 func Retry(
 	ctx context.Context,
 	le *logrus.Entry,
