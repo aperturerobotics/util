@@ -25,10 +25,11 @@ func DefaultBackoff() backoff.BackOff {
 // Retry uses a backoff to re-try a process.
 // If the process returns nil or context canceled, it exits.
 // If bo is nil, a default one is created.
+// Success function will reset the backoff.
 func Retry(
 	ctx context.Context,
 	le *logrus.Entry,
-	f func(context.Context) error,
+	f func(ctx context.Context, success func()) error,
 	bo backoff.BackOff,
 ) error {
 	if bo == nil {
@@ -37,7 +38,7 @@ func Retry(
 
 	for {
 		le.Debug("starting process")
-		err := f(ctx)
+		err := f(ctx, bo.Reset)
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
