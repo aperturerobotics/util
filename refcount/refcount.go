@@ -21,7 +21,8 @@ type RefCount[T comparable] struct {
 	targetErr *ccontainer.CContainer[*error]
 	// resolver is the resolver function
 	// returns the value and a release function
-	resolver func(ctx context.Context) (T, func(), error)
+	// call the released callback if the value is no longer valid.
+	resolver func(ctx context.Context, released func()) (T, func(), error)
 	// mtx guards below fields
 	mtx sync.Mutex
 	// refs is the list of references.
@@ -30,6 +31,9 @@ type RefCount[T comparable] struct {
 	resolveCtx context.Context
 	// resolveCtxCancel cancels resolveCtx
 	resolveCtxCancel context.CancelFunc
+	// waitCh is a channel to wait before starting next resolve
+	// may be nil
+	waitCh chan struct{}
 	// value is the current value
 	value T
 	// valueErr is the current value error.
@@ -54,12 +58,17 @@ func (k *Ref[T]) Release() {
 }
 
 // NewRefCount builds a new RefCount.
+//
 // ctx, target and targetErr can be empty
+//
+// resolver is the resolver function
+// returns the value and a release function
+// call the released callback if the value is no longer valid.
 func NewRefCount[T comparable](
 	ctx context.Context,
 	target *ccontainer.CContainer[T],
 	targetErr *ccontainer.CContainer[*error],
-	resolver func(ctx context.Context) (T, func(), error),
+	resolver func(ctx context.Context, released func()) (T, func(), error),
 ) *RefCount[T] {
 	return &RefCount[T]{
 		ctx:       ctx,
@@ -100,7 +109,7 @@ func (r *RefCount[T]) SetContext(ctx context.Context) {
 	r.mtx.Lock()
 	if r.ctx != ctx {
 		r.ctx = ctx
-		r.startResolve()
+		r.startResolveLocked()
 	}
 	r.mtx.Unlock()
 }
@@ -112,7 +121,7 @@ func (r *RefCount[T]) AddRef(cb func(val T, err error)) *Ref[T] {
 	nref := &Ref[T]{rc: r, cb: cb}
 	r.refs[nref] = struct{}{}
 	if len(r.refs) == 1 {
-		r.startResolve()
+		r.startResolveLocked()
 	} else {
 		var empty T
 		if val := r.value; val != empty {
@@ -137,9 +146,17 @@ func (r *RefCount[T]) Wait(ctx context.Context) (T, *Ref[T], error) {
 			return
 		}
 		if err != nil {
-			errCh <- err
+			select {
+			case <-ctx.Done():
+				return
+			case errCh <- err:
+			}
 		} else {
-			valCh <- val
+			select {
+			case <-ctx.Done():
+				return
+			case valCh <- val:
+			}
 		}
 	})
 	select {
@@ -180,7 +197,7 @@ func (r *RefCount[T]) removeRef(ref *Ref[T]) {
 	r.mtx.Unlock()
 }
 
-// shutdown shuts down the resolver, if any.
+// shutdown shuts down the resolver and clears state.
 // expects mtx is locked by caller
 func (r *RefCount[T]) shutdown() {
 	if r.resolveCtxCancel != nil {
@@ -196,11 +213,15 @@ func (r *RefCount[T]) shutdown() {
 	if r.target != nil {
 		r.target.SetValue(empty)
 	}
+	r.valueErr = nil
+	if r.targetErr != nil {
+		r.targetErr.SetValue(nil)
+	}
 }
 
-// startResolve starts the resolve goroutine.
+// startResolveLocked starts the resolve goroutine.
 // expects caller to lock mutex.
-func (r *RefCount[T]) startResolve() {
+func (r *RefCount[T]) startResolveLocked() {
 	if r.resolveCtxCancel != nil {
 		r.resolveCtxCancel()
 	}
@@ -208,21 +229,48 @@ func (r *RefCount[T]) startResolve() {
 		r.resolveCtxCancel = nil
 		return
 	}
+	waitCh := r.waitCh
+	doneCh := make(chan struct{})
+	r.waitCh = doneCh
 	r.resolveCtx, r.resolveCtxCancel = context.WithCancel(r.ctx)
-	go r.resolve(r.resolveCtx)
+	go r.resolve(r.resolveCtx, waitCh, doneCh)
 }
 
 // resolve is the goroutine to resolve the value to the container.
-func (r *RefCount[T]) resolve(ctx context.Context) {
-	val, valRel, err := r.resolver(ctx)
+func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{}) {
+	defer close(doneCh)
+
+	if waitCh != nil {
+		select {
+		case <-ctx.Done():
+			return
+		case <-waitCh:
+		}
+	}
+
+	released := func() {
+		r.mtx.Lock()
+		if r.waitCh != doneCh {
+			r.mtx.Unlock()
+			return
+		}
+
+		r.shutdown()
+		if len(r.refs) != 0 && r.ctx != nil {
+			r.startResolveLocked()
+		}
+		r.mtx.Unlock()
+	}
+
+	val, valRel, err := r.resolver(ctx, released)
 
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
 	// assert we are still the resolver
-	if r.resolveCtx != ctx {
+	if r.waitCh != doneCh {
 		if valRel != nil {
-			valRel()
+			defer valRel()
 		}
 		return
 	}
