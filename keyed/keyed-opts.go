@@ -7,47 +7,45 @@ import (
 )
 
 // Option is an option for a Keyed instance.
-type Option[T comparable] interface {
+type Option[K comparable, V any] interface {
 	// ApplyToKeyed applies the option to the Keyed.
-	ApplyToKeyed(k *Keyed[T])
+	ApplyToKeyed(k *Keyed[K, V])
 }
 
-type option[T comparable] struct {
-	cb func(k *Keyed[T])
+type option[K comparable, V any] struct {
+	cb func(k *Keyed[K, V])
 }
 
 // newOption constructs a new option.
-func newOption[T comparable](cb func(k *Keyed[T])) *option[T] {
-	return &option[T]{
-		cb: cb,
-	}
+func newOption[K comparable, V any](cb func(k *Keyed[K, V])) *option[K, V] {
+	return &option[K, V]{cb: cb}
 }
 
 // ApplyToKeyed applies the option to the Keyed instance.
-func (o *option[T]) ApplyToKeyed(k *Keyed[T]) {
+func (o *option[K, V]) ApplyToKeyed(k *Keyed[K, V]) {
 	if o.cb != nil {
 		o.cb(k)
 	}
 }
 
 // WithReleaseDelay adds a delay after removing a key before canceling the routine.
-func WithReleaseDelay[T comparable](delay time.Duration) Option[T] {
+func WithReleaseDelay[K comparable, V any](delay time.Duration) Option[K, V] {
 	if delay < 0 {
 		delay *= -1
 	}
-	return newOption(func(k *Keyed[T]) {
+	return newOption(func(k *Keyed[K, V]) {
 		k.releaseDelay = delay
 	})
 }
 
 // WithExitCb adds a callback after a routine exits.
-func WithExitCb[T comparable](cb func(key string, routine Routine, data T, err error)) Option[T] {
-	return newOption(func(k *Keyed[T]) {
+func WithExitCb[K comparable, V any](cb func(key K, routine Routine, data V, err error)) Option[K, V] {
+	return newOption(func(k *Keyed[K, V]) {
 		k.exitedCbs = append(k.exitedCbs, cb)
 	})
 }
 
 // WithExitLogger adds a exited callback which logs information about the exit.
-func WithExitLogger[T comparable](le *logrus.Entry) Option[T] {
-	return WithExitCb[T](NewLogExitedCallback[T](le))
+func WithExitLogger[K comparable, V any](le *logrus.Entry) Option[K, V] {
+	return WithExitCb(NewLogExitedCallback[K, V](le))
 }

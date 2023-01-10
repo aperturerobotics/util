@@ -6,11 +6,11 @@ import (
 )
 
 // runningRoutine tracks a running routine
-type runningRoutine[T comparable] struct {
+type runningRoutine[K comparable, V any] struct {
 	// k is the keyed instance
-	k *Keyed[T]
+	k *Keyed[K, V]
 	// key is the key for this routine
-	key string
+	key K
 
 	// fields guarded by k.mtx
 	// ctx is the context
@@ -24,7 +24,7 @@ type runningRoutine[T comparable] struct {
 	// routine is the routine callback
 	routine Routine
 	// data is the associated routine data
-	data T
+	data V
 	// err is the error if any
 	err error
 	// success indicates the routine succeeded
@@ -36,8 +36,8 @@ type runningRoutine[T comparable] struct {
 }
 
 // newRunningRoutine constructs a new runningRoutine
-func newRunningRoutine[T comparable](k *Keyed[T], key string, routine Routine, data T) *runningRoutine[T] {
-	return &runningRoutine[T]{
+func newRunningRoutine[K comparable, V any](k *Keyed[K, V], key K, routine Routine, data V) *runningRoutine[K, V] {
+	return &runningRoutine[K, V]{
 		k:       k,
 		key:     key,
 		routine: routine,
@@ -49,7 +49,7 @@ func newRunningRoutine[T comparable](k *Keyed[T], key string, routine Routine, d
 // expects k.mtx to be locked by caller
 // if waitCh != nil, waits for waitCh to be closed before fully starting.
 // if forceRestart is set, cancels the existing routine.
-func (r *runningRoutine[T]) start(ctx context.Context, waitCh <-chan struct{}, forceRestart bool) {
+func (r *runningRoutine[K, V]) start(ctx context.Context, waitCh <-chan struct{}, forceRestart bool) {
 	if (!forceRestart && r.success) || r.routine == nil {
 		return
 	}
@@ -73,7 +73,7 @@ func (r *runningRoutine[T]) start(ctx context.Context, waitCh <-chan struct{}, f
 }
 
 // execute executes the routine.
-func (r *runningRoutine[T]) execute(
+func (r *runningRoutine[K, V]) execute(
 	ctx context.Context,
 	cancel context.CancelFunc,
 	exitedCh chan struct{},
@@ -116,7 +116,7 @@ func (r *runningRoutine[T]) execute(
 
 // remove is called when the routine is removed / canceled.
 // expects r.k.mtx to be locked
-func (r *runningRoutine[T]) remove() {
+func (r *runningRoutine[K, V]) remove() {
 	if r.deferRemove != nil {
 		return
 	}

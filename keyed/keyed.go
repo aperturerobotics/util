@@ -2,7 +2,6 @@ package keyed
 
 import (
 	"context"
-	"sort"
 	"sync"
 	"time"
 
@@ -15,11 +14,14 @@ import (
 type Routine func(ctx context.Context) error
 
 // Keyed manages a set of goroutines with associated Keys.
-type Keyed[T comparable] struct {
+//
+// K is the type of the key.
+// V is the type of the value.
+type Keyed[K comparable, V any] struct {
 	// ctorCb is the constructor callback
-	ctorCb func(key string) (Routine, T)
+	ctorCb func(key K) (Routine, V)
 	// exitedCbs is the set of exited callbacks.
-	exitedCbs []func(key string, routine Routine, data T, err error)
+	exitedCbs []func(key K, routine Routine, data V, err error)
 
 	// releaseDelay is a delay before stopping a routine.
 	releaseDelay time.Duration
@@ -29,26 +31,26 @@ type Keyed[T comparable] struct {
 	// ctx is the current root context
 	ctx context.Context
 	// routines is the set of running routines
-	routines map[string]*runningRoutine[T]
+	routines map[K]*runningRoutine[K, V]
 }
 
 // NewKeyed constructs a new Keyed execution manager.
 // Note: routines won't start until SetContext is called.
 // exitedCb is called after a routine exits unexpectedly.
-func NewKeyed[T comparable](
-	ctorCb func(key string) (Routine, T),
-	opts ...Option[T],
-) *Keyed[T] {
+func NewKeyed[K comparable, V any](
+	ctorCb func(key K) (Routine, V),
+	opts ...Option[K, V],
+) *Keyed[K, V] {
 	if ctorCb == nil {
-		ctorCb = func(key string) (Routine, T) {
-			var empty T
+		ctorCb = func(key K) (Routine, V) {
+			var empty V
 			return nil, empty
 		}
 	}
-	k := &Keyed[T]{
+	k := &Keyed[K, V]{
 		ctorCb: ctorCb,
 
-		routines: make(map[string]*runningRoutine[T], 1),
+		routines: make(map[K]*runningRoutine[K, V], 1),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -63,17 +65,17 @@ func NewKeyed[T comparable](
 //
 // Note: routines won't start until SetContext is called.
 // exitedCb is called after a routine exits unexpectedly.
-func NewKeyedWithLogger[T comparable](
-	ctorCb func(key string) (Routine, T),
+func NewKeyedWithLogger[K comparable, V any](
+	ctorCb func(key K) (Routine, V),
 	le *logrus.Entry,
-) *Keyed[T] {
-	return NewKeyed(ctorCb, WithExitLogger[T](le))
+) *Keyed[K, V] {
+	return NewKeyed(ctorCb, WithExitLogger[K, V](le))
 }
 
 // SetContext updates the root context, restarting all running routines.
 // If ctx == nil, stops all routines.
 // if restart is true, all errored routines also restart
-func (k *Keyed[T]) SetContext(ctx context.Context, restart bool) {
+func (k *Keyed[K, V]) SetContext(ctx context.Context, restart bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -101,50 +103,44 @@ func (k *Keyed[T]) SetContext(ctx context.Context, restart bool) {
 }
 
 // GetKeys returns the list of keys registered with the Keyed instance.
-// Note: this is an instantaneous snapshot.
-func (k *Keyed[T]) GetKeys() []string {
+func (k *Keyed[K, V]) GetKeys() []K {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
-	keys := make([]string, 0, len(k.routines))
+	keys := make([]K, 0, len(k.routines))
 	for k := range k.routines {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
 	return keys
 }
 
 // KeyWithData is a key with associated data.
-type KeyWithData[T comparable] struct {
+type KeyWithData[K comparable, V any] struct {
 	// Key is the key.
-	Key string
-	// Data is the associated data.
-	Data T
+	Key K
+	// Data is the value.
+	Data V
 }
 
 // GetKeysWithData returns the keys and the data for the keys.
-// Note: this is an instantaneous snapshot.
-func (k *Keyed[T]) GetKeysWithData() []KeyWithData[T] {
+func (k *Keyed[K, V]) GetKeysWithData() []KeyWithData[K, V] {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
-	out := make([]KeyWithData[T], 0, len(k.routines))
+	out := make([]KeyWithData[K, V], 0, len(k.routines))
 	for k, v := range k.routines {
-		out = append(out, KeyWithData[T]{
+		out = append(out, KeyWithData[K, V]{
 			Key:  k,
 			Data: v.data,
 		})
 	}
-	sort.Slice(out, func(i, j int) bool {
-		return out[i].Key < out[j].Key
-	})
 	return out
 }
 
 // SetKey inserts the given key into the set, if it doesn't already exist.
 // If start=true, restarts the routine from any stopped or failed state.
 // Returns if it existed already or not.
-func (k *Keyed[T]) SetKey(key string, start bool) (T, bool) {
+func (k *Keyed[K, V]) SetKey(key K, start bool) (V, bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -168,7 +164,7 @@ func (k *Keyed[T]) SetKey(key string, start bool) (T, bool) {
 
 // RemoveKey removes the given key from the set, if it exists.
 // Returns if it existed.
-func (k *Keyed[T]) RemoveKey(key string) bool {
+func (k *Keyed[K, V]) RemoveKey(key K) bool {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -181,7 +177,7 @@ func (k *Keyed[T]) RemoveKey(key string) bool {
 
 // SyncKeys synchronizes the list of running routines with the given list.
 // If restart=true, restarts any routines in the failed state.
-func (k *Keyed[T]) SyncKeys(keys []string, restart bool) {
+func (k *Keyed[K, V]) SyncKeys(keys []K, restart bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -193,7 +189,7 @@ func (k *Keyed[T]) SyncKeys(keys []string, restart bool) {
 		}
 	}
 
-	routines := make(map[string]*runningRoutine[T], len(keys))
+	routines := make(map[K]*runningRoutine[K, V], len(keys))
 	for _, key := range keys {
 		v := routines[key]
 		if v != nil {
@@ -220,13 +216,13 @@ func (k *Keyed[T]) SyncKeys(keys []string, restart bool) {
 }
 
 // GetKey returns the value for the given key and existed.
-func (k *Keyed[T]) GetKey(key string) (T, bool) {
+func (k *Keyed[K, V]) GetKey(key K) (V, bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
 	v, existed := k.routines[key]
 	if !existed {
-		var empty T
+		var empty V
 		return empty, false
 	}
 
@@ -241,7 +237,7 @@ func (k *Keyed[T]) GetKey(key string) (T, bool) {
 // In most cases RestartRoutine is actually what you want.
 //
 // If len(conds) == 0, always resets the given key.
-func (k *Keyed[T]) ResetRoutine(key string, conds ...func(T) bool) (existed bool, reset bool) {
+func (k *Keyed[K, V]) ResetRoutine(key K, conds ...func(V) bool) (existed bool, reset bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -286,7 +282,7 @@ func (k *Keyed[T]) ResetRoutine(key string, conds ...func(T) bool) (existed bool
 // If any return true, and the routine is running, restarts the instance.
 //
 // If len(conds) == 0, always resets the given key.
-func (k *Keyed[T]) RestartRoutine(key string, conds ...func(T) bool) (existed bool, reset bool) {
+func (k *Keyed[K, V]) RestartRoutine(key K, conds ...func(V) bool) (existed bool, reset bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 

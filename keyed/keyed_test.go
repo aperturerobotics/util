@@ -29,7 +29,7 @@ func TestKeyed(t *testing.T) {
 				return nil
 			}
 		}, &testData{}
-	}, WithExitLogger[*testData](le))
+	}, WithExitLogger[string, *testData](le))
 
 	nsend := 100
 	keys := make([]string, nsend)
@@ -85,8 +85,8 @@ func TestKeyed_WithDelay(t *testing.T) {
 				return nil
 			}, &testData{}
 		},
-		WithExitLogger[*testData](le),
-		WithReleaseDelay[*testData](time.Millisecond*180),
+		WithExitLogger[string, *testData](le),
+		WithReleaseDelay[string, *testData](time.Millisecond*180),
 	)
 
 	// start execution
