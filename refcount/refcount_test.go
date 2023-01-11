@@ -35,17 +35,23 @@ func TestRefCount(t *testing.T) {
 		t.Fail()
 	}
 
-	var gotValue *string
-	gotErr := rc.Access(ctx, func(val *string) error {
-		gotValue = val
-		return nil
-	})
+	firstRef := ref
+	prom, ref := rc.WaitPromise(ctx)
+	// release the first ref after adding the second
+	firstRef.Release()
+	val, err := prom.Await(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if (*val) != "hello world" {
+		t.Fail()
+	}
 
 	waitVal, err := target.WaitValue(ctx, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if waitVal != gotValue || gotErr != nil || relCalled.Load() {
+	if waitVal != val || relCalled.Load() {
 		t.Fail()
 	}
 	ref.Release()
@@ -61,16 +67,13 @@ func TestRefCount_Released(t *testing.T) {
 	target := ccontainer.NewCContainer[*int](nil)
 	targetErr := ccontainer.NewCContainer[*error](nil)
 	var valCalled, relCalled atomic.Bool
-	doCallRelease := make(chan struct{})
 	ctr := 0
+	var relFunc func()
 	rc := NewRefCount(nil, target, targetErr, func(ctx context.Context, released func()) (*int, func(), error) {
 		valCalled.Store(true)
 		ctr++
 		val := ctr
-		go func() {
-			<-doCallRelease
-			released()
-		}()
+		relFunc = released
 		return &val, func() {
 			relCalled.Store(true)
 		}, nil
@@ -90,23 +93,24 @@ func TestRefCount_Released(t *testing.T) {
 		t.Fail()
 	}
 
-	var gotValue *int
-	gotErr := rc.Access(ctx, func(val *int) error {
-		gotValue = val
+	var v1 *int
+	gotErr := rc.Access(ctx, func(ctx context.Context, val *int) error {
+		v1 = val
 		return nil
 	})
 	if gotErr != nil {
 		t.Fatal(gotErr.Error())
 	}
-	if *gotValue != ctr {
-		t.Fatalf("expected value to be %v but had %v", ctr, *gotValue)
+	if *v1 != ctr {
+		t.Fatalf("expected value to be %v but had %v", ctr, *v1)
 	}
 
-	close(doCallRelease)
+	relFunc()
 	<-time.After(time.Millisecond * 50)
 
-	gotErr = rc.Access(ctx, func(val *int) error {
-		gotValue = val
+	var v2 *int
+	gotErr = rc.Access(ctx, func(ctx context.Context, val *int) error {
+		v2 = val
 		return nil
 	})
 	if gotErr != nil {
@@ -115,7 +119,10 @@ func TestRefCount_Released(t *testing.T) {
 	if ctr == 1 {
 		t.Fail()
 	}
-	if *gotValue != ctr {
-		t.Fatalf("expected value to be %v but had %v", ctr, *gotValue)
+	if v2 == nil {
+		t.Fatalf("expected value to be %v but got nil", ctr)
+	}
+	if *v2 != ctr {
+		t.Fatalf("expected value to be %v but had %v", ctr, *v2)
 	}
 }

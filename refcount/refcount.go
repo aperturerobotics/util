@@ -5,7 +5,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/promise"
 )
 
 // RefCount is a refcount driven object container.
@@ -31,9 +33,13 @@ type RefCount[T comparable] struct {
 	resolveCtx context.Context
 	// resolveCtxCancel cancels resolveCtx
 	resolveCtxCancel context.CancelFunc
+	// nonce is incremented when starting/stopping the resolver
+	nonce uint32
 	// waitCh is a channel to wait before starting next resolve
 	// may be nil
 	waitCh chan struct{}
+	// resolved indicates the value is set
+	resolved bool
 	// value is the current value
 	value T
 	// valueErr is the current value error.
@@ -46,7 +52,7 @@ type RefCount[T comparable] struct {
 type Ref[T comparable] struct {
 	rc  *RefCount[T]
 	rel atomic.Bool
-	cb  func(val T, err error)
+	cb  func(resolved bool, val T, err error)
 }
 
 // Release releases the reference.
@@ -116,73 +122,135 @@ func (r *RefCount[T]) SetContext(ctx context.Context) {
 
 // AddRef adds a reference to the RefCount container.
 // cb is an optional callback to call when the value changes.
-func (r *RefCount[T]) AddRef(cb func(val T, err error)) *Ref[T] {
+// the callback will be called with an empty value when the value becomes empty.
+func (r *RefCount[T]) AddRef(cb func(resolved bool, val T, err error)) *Ref[T] {
 	r.mtx.Lock()
 	nref := &Ref[T]{rc: r, cb: cb}
 	r.refs[nref] = struct{}{}
 	if len(r.refs) == 1 {
 		r.startResolveLocked()
 	} else {
-		var empty T
-		if val := r.value; val != empty {
-			nref.cb(val, nil)
-		} else if err := r.valueErr; err != nil {
-			nref.cb(empty, err)
+		if r.resolved {
+			nref.cb(true, r.value, r.valueErr)
 		}
 	}
 	r.mtx.Unlock()
 	return nref
 }
 
+// WaitPromise adds a reference and returns a promise with the value.
+func (r *RefCount[T]) WaitPromise(ctx context.Context) (promise.PromiseLike[T], *Ref[T]) {
+	promCtr := promise.NewPromiseContainer[T]()
+	ref := r.AddRef(func(resolved bool, val T, err error) {
+		if !resolved {
+			promCtr.SetPromise(nil)
+		} else {
+			promCtr.SetResult(val, err)
+		}
+	})
+	return promCtr, ref
+}
+
 // Wait adds a reference and waits for a value.
 // Returns the value, reference, and any error.
 // If err != nil, value and reference will be nil.
 func (r *RefCount[T]) Wait(ctx context.Context) (T, *Ref[T], error) {
-	var done atomic.Bool
-	valCh := make(chan T, 1)
-	errCh := make(chan error, 1)
-	ref := r.AddRef(func(val T, err error) {
-		if done.Swap(true) {
-			return
-		}
-		if err != nil {
-			select {
-			case <-ctx.Done():
-				return
-			case errCh <- err:
-			}
-		} else {
-			select {
-			case <-ctx.Done():
-				return
-			case valCh <- val:
-			}
+	prom := promise.NewPromise[T]()
+	ref := r.AddRef(func(resolved bool, val T, err error) {
+		if resolved {
+			prom.SetResult(val, err)
 		}
 	})
-	select {
-	case <-ctx.Done():
+	val, err := prom.Await(ctx)
+	if err != nil {
 		ref.Release()
-		var empty T
-		return empty, nil, context.Canceled
-	case err := <-errCh:
-		ref.Release()
-		var empty T
-		return empty, nil, err
-	case val := <-valCh:
-		return val, ref, nil
+		return val, nil, err
 	}
+	return val, ref, nil
 }
 
 // Access adds a reference, waits for a value, and calls the callback.
 // Releases the reference once the callback has returned.
-func (r *RefCount[T]) Access(ctx context.Context, cb func(T) error) error {
-	val, rel, err := r.Wait(ctx)
-	if err != nil {
-		return err
-	}
-	defer rel.Release()
-	return cb(val)
+// The context will be canceled if the value is removed / changed.
+// Return context.Canceled if the context is canceled.
+// The callback may be restarted if the context is canceled and a new value is resolved.
+func (r *RefCount[T]) Access(ctx context.Context, cb func(ctx context.Context, val T) error) error {
+	var mtx sync.Mutex
+	var bcast broadcast.Broadcast
+	var currVal T
+	var currErr error
+	var currResolved bool
+	var currNonce uint32
+	var currComplete bool
 
+	ref := r.AddRef(func(nowResolved bool, nowVal T, nowErr error) {
+		mtx.Lock()
+		if nowResolved != currResolved || nowVal != currVal || nowErr != currErr {
+			currVal = nowVal
+			currErr = nowErr
+			currResolved = nowResolved
+			bcast.Broadcast()
+		}
+		mtx.Unlock()
+	})
+	defer ref.Release()
+
+	var prevCancel context.CancelFunc
+	var prevWait chan struct{}
+	for {
+		mtx.Lock()
+		currNonce++
+		mtx.Unlock()
+		if prevCancel != nil {
+			prevCancel()
+			prevCancel = nil
+		}
+		if prevWait != nil {
+			select {
+			case <-ctx.Done():
+				return context.Canceled
+			case <-prevWait:
+				prevWait = nil
+			}
+		}
+
+		mtx.Lock()
+		val, err, resolved, nonce, complete := currVal, currErr, currResolved, currNonce, currComplete
+		bcastCh := bcast.GetWaitCh()
+		mtx.Unlock()
+		if err != nil || complete {
+			return err
+		}
+
+		if resolved {
+			var cbCtx context.Context
+			cbCtx, prevCancel = context.WithCancel(ctx)
+			prevWait = make(chan struct{})
+			go func(cbCtx context.Context, doneCh chan struct{}, nonce uint32, val T) {
+				defer close(doneCh)
+				cbErr := cb(cbCtx, val)
+				mtx.Lock()
+				if currNonce == nonce {
+					if currErr == nil {
+						currErr = cbErr
+					}
+					currComplete = currErr == nil
+					currResolved = false
+					bcast.Broadcast()
+				}
+				mtx.Unlock()
+			}(cbCtx, prevWait, nonce, val)
+		}
+
+		select {
+		case <-ctx.Done():
+			if prevCancel != nil {
+				prevCancel()
+			}
+			return context.Canceled
+		case <-bcastCh:
+		}
+	}
 }
 
 // removeRef removes a reference and shuts down if no refs remain.
@@ -200,6 +268,24 @@ func (r *RefCount[T]) removeRef(ref *Ref[T]) {
 // shutdown shuts down the resolver and clears state.
 // expects mtx is locked by caller
 func (r *RefCount[T]) shutdown() {
+	r.nonce++
+	if r.resolved {
+		r.resolved = false
+		if r.valueErr != nil {
+			r.valueErr = nil
+			if r.targetErr != nil {
+				r.targetErr.SetValue(nil)
+			}
+		}
+		var empty T
+		if r.value != empty {
+			r.value = empty
+			if r.target != nil {
+				r.target.SetValue(empty)
+			}
+		}
+		r.callRefCbsLocked(false, empty, nil)
+	}
 	if r.resolveCtxCancel != nil {
 		r.resolveCtxCancel()
 		r.resolveCtx, r.resolveCtxCancel = nil, nil
@@ -207,15 +293,6 @@ func (r *RefCount[T]) shutdown() {
 	if r.valueRel != nil {
 		r.valueRel()
 		r.valueRel = nil
-	}
-	var empty T
-	r.value = empty
-	if r.target != nil {
-		r.target.SetValue(empty)
-	}
-	r.valueErr = nil
-	if r.targetErr != nil {
-		r.targetErr.SetValue(nil)
 	}
 }
 
@@ -233,11 +310,13 @@ func (r *RefCount[T]) startResolveLocked() {
 	doneCh := make(chan struct{})
 	r.waitCh = doneCh
 	r.resolveCtx, r.resolveCtxCancel = context.WithCancel(r.ctx)
-	go r.resolve(r.resolveCtx, waitCh, doneCh)
+	r.nonce++
+	nonce := r.nonce
+	go r.resolve(r.resolveCtx, waitCh, doneCh, nonce)
 }
 
 // resolve is the goroutine to resolve the value to the container.
-func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{}) {
+func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{}, nonce uint32) {
 	defer close(doneCh)
 
 	if waitCh != nil {
@@ -250,7 +329,7 @@ func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{})
 
 	released := func() {
 		r.mtx.Lock()
-		if r.waitCh != doneCh {
+		if r.nonce != nonce {
 			r.mtx.Unlock()
 			return
 		}
@@ -268,7 +347,7 @@ func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{})
 	defer r.mtx.Unlock()
 
 	// assert we are still the resolver
-	if r.waitCh != doneCh {
+	if r.nonce != nonce {
 		if valRel != nil {
 			defer valRel()
 		}
@@ -276,6 +355,7 @@ func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{})
 	}
 
 	// store the value and/or error
+	r.resolved = true
 	r.value, r.valueErr = val, err
 	r.valueRel = valRel
 	if err != nil {
@@ -290,9 +370,14 @@ func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{})
 			r.target.SetValue(val)
 		}
 	}
+	r.callRefCbsLocked(true, val, err)
+}
+
+// callRefCbsLocked calls the reference callbacks.
+func (r *RefCount[T]) callRefCbsLocked(resolved bool, val T, err error) {
 	for ref := range r.refs {
 		if ref.cb != nil {
-			ref.cb(val, err)
+			ref.cb(resolved, val, err)
 		}
 	}
 }
