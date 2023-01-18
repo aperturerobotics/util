@@ -120,3 +120,6 @@ func (c *CContainer[T]) WaitValueEmpty(ctx context.Context, errCh <-chan error) 
 	}, errCh)
 	return err
 }
+
+// _ is a type assertion
+var _ Watchable[struct{}] = ((*CContainer[struct{}])(nil))
