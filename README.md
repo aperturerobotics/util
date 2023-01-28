@@ -14,12 +14,14 @@ Various utilities for Go and TypeScript including:
  - [ccall]: call a set of functions concurrently and wait for error or exit
  - [ccontainer]: concurrent container for objects
  - [commonprefix]: find common prefix between strings
+ - [conc]: concurrent control flow / queue utilities
  - [debounce-fswatcher]: debounce fs watcher events
  - [exec]: wrapper around Go os exec
  - [iocloser]: wrap reader/writer with a close function
  - [iosizer]: read/writer with metrics for size
  - [keyed]: key/value based routine management
  - [linkedlist]: linked list with head/tail
+ - [memo]: memoize a function: call it once and remember results
  - [padding]: pad / unpad a byte array slice
  - [prng]: psuedorandom generator with seed
  - [promise]: promise mechanics for Go (like JS)
@@ -31,12 +33,14 @@ Various utilities for Go and TypeScript including:
 [ccall]: ./ccall
 [ccontainer]: ./ccontainer
 [commonprefix]: ./commonprefix
+[conc]: ./conc
 [debounce-fswatcher]: ./debounce-fswatcher
 [exec]: ./exec
 [iocloser]: ./iocloser
 [iosizer]: ./iosizer
 [keyed]: ./keyed
 [linkedlist]: ./linkedlist
+[memo]: ./memo
 [padding]: ./padding
 [prng]: ./prng
 [promise]: ./promise
