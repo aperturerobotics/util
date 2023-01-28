@@ -66,6 +66,14 @@ func (l *LinkedList[T]) Peek() (T, bool) {
 	return val, exists
 }
 
+// IsEmpty checks if the linked list is empty.
+func (l *LinkedList[T]) IsEmpty() bool {
+	l.mtx.Lock()
+	empty := l.head == nil
+	l.mtx.Unlock()
+	return empty
+}
+
 // PeekTail peeks the tail of the linked list.
 func (l *LinkedList[T]) PeekTail() (T, bool) {
 	l.mtx.Lock()
