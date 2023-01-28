@@ -942,6 +942,11 @@ camelcase@^6.2.0:
   resolved "https://registry.yarnpkg.com/camelcase/-/camelcase-6.3.0.tgz#5685b95eb209ac9c0c177467778c9c84df58ba9a"
   integrity sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==
 
+case-anything@^2.1.10:
+  version "2.1.10"
+  resolved "https://registry.yarnpkg.com/case-anything/-/case-anything-2.1.10.tgz#d18a6ca968d54ec3421df71e3e190f3bced23410"
+  integrity sha512-JczJwVrCP0jPKh05McyVsuOg6AYosrB9XWZKbQzXeDAm2ClE/PJE/BcrrQrVyGYH7Jg8V/LDupmyL4kFlVsVFQ==
+
 chalk@^2.0.0, chalk@^2.4.2:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.4.2.tgz#cd42541677a54333cf541a49108c1432b44c9424"
@@ -2463,10 +2468,10 @@ to-regex-range@^5.0.1:
   dependencies:
     is-number "^7.0.0"
 
-ts-poet@^6.1.0:
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/ts-poet/-/ts-poet-6.1.0.tgz#c5c3d679dfce1fe39acb5f5415275c5d6a598cb7"
-  integrity sha512-PFwbNJjGrb44wzHUGQicG2/nhjR+3+k7zYLDTa8D61NVUitl7K/JgIc9/P+8oMNenntKzLc8tjLDOkPrxIhm6A==
+ts-poet@^6.2.0:
+  version "6.3.0"
+  resolved "https://registry.yarnpkg.com/ts-poet/-/ts-poet-6.3.0.tgz#954f2a6923ccaa2d4cdf55979f2e991d440e30a3"
+  integrity sha512-RjS37SnXMa9En8xvQf//+rvNNNCB7x2TKP/ZfsiQFidtfN3A6FYgPDESe4r7YA3F663XO2ozx+2buQItGOLMxg==
   dependencies:
     dprint-node "^1.0.7"
 
@@ -2478,16 +2483,17 @@ ts-proto-descriptors@1.7.1:
     long "^4.0.0"
     protobufjs "^6.8.8"
 
-ts-proto@^1.127.0:
-  version "1.127.0"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.127.0.tgz#1fbcfbffd6665c6fd81daaff6df03a779f04e7d6"
-  integrity sha512-UDNK/dkiX872v18jw958fo0MwRH78dwUzGSQgoOAENm/57jx8wUiaLNlfdh8t3JHN5ocT+e1e008u3KdfCzWlw==
+ts-proto@^1.138.0:
+  version "1.138.0"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.138.0.tgz#aafbf66f83da1f36933fce4ba43c352a9b8fd73e"
+  integrity sha512-C12rKQdzV2/7ncusEkcyO6Z3EK+04TfZSVdRwmhwkrNcwcktm3Azg7NKBpDTgvpktGQ4nTTPRSlO5CGTkx1zJg==
   dependencies:
     "@types/object-hash" "^1.3.0"
+    case-anything "^2.1.10"
     dataloader "^1.4.0"
     object-hash "^1.3.1"
     protobufjs "^6.11.3"
-    ts-poet "^6.1.0"
+    ts-poet "^6.2.0"
     ts-proto-descriptors "1.7.1"
 
 tslib@^1.8.1:
