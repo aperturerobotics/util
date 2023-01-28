@@ -189,6 +189,10 @@ export const Backoff = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Backoff>, I>>(base?: I): Backoff {
+    return Backoff.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Backoff>, I>>(object: I): Backoff {
     const message = createBaseBackoff();
     message.backoffKind = object.backoffKind ?? 0;
@@ -308,6 +312,10 @@ export const Exponential = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Exponential>, I>>(base?: I): Exponential {
+    return Exponential.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Exponential>, I>>(object: I): Exponential {
     const message = createBaseExponential();
     message.initialInterval = object.initialInterval ?? 0;
@@ -389,6 +397,10 @@ export const Constant = {
     const obj: any = {};
     message.interval !== undefined && (obj.interval = Math.round(message.interval));
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Constant>, I>>(base?: I): Constant {
+    return Constant.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<Constant>, I>>(object: I): Constant {
