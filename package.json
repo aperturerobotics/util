@@ -56,7 +56,7 @@
   },
   "dependencies": {
     "bufferutil": "^4.0.7",
-    "long": "^5.2.0",
+    "long": "^5.2.1",
     "protobufjs": "^7.1.2",
     "starpc": "^0.12.0",
     "utf-8-validate": "^5.0.9"
