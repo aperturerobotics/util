@@ -2,6 +2,8 @@ package routine
 
 import (
 	"context"
+	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -15,7 +17,11 @@ func TestRoutineContainer(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 	vals := make(chan struct{})
+	var exitWithErr atomic.Pointer[error]
 	routineFn := func(ctx context.Context) error {
+		if errPtr := exitWithErr.Load(); errPtr != nil {
+			return *errPtr
+		}
 		select {
 		case <-ctx.Done():
 			return context.Canceled
@@ -84,6 +90,21 @@ func TestRoutineContainer(t *testing.T) {
 		t.Fail()
 	}
 
+	// test wait exited
+	var waitExitedReturned atomic.Pointer[error]
+	startWaitExited := func() {
+		go func() {
+			err := k.WaitExited(ctx)
+			waitExitedReturned.Store(&err)
+		}()
+	}
+	startWaitExited()
+
+	<-time.After(time.Millisecond * 10)
+	if waitExitedReturned.Load() != nil {
+		t.Fail()
+	}
+
 	// set context
 	if !k.SetContext(ctx, true) {
 		t.Fail()
@@ -91,6 +112,9 @@ func TestRoutineContainer(t *testing.T) {
 
 	// expect value to be pushed to vals
 	<-time.After(time.Millisecond * 10)
+	if waitExitedReturned.Load() != nil {
+		t.Fail()
+	}
 	select {
 	case <-vals:
 	default:
@@ -104,9 +128,39 @@ func TestRoutineContainer(t *testing.T) {
 
 	// expect value to be pushed to vals
 	<-time.After(time.Millisecond * 10)
+	if waitExitedReturned.Load() != nil {
+		t.Fail()
+	}
 	select {
 	case <-vals:
 	default:
+		t.Fail()
+	}
+
+	// this time, tell the routine to fail
+	expectedErr := errors.New("expected error for testing")
+	exitWithErr.Store(&expectedErr)
+	k.RestartRoutine()
+
+	<-time.After(time.Millisecond * 10)
+	errPtr := waitExitedReturned.Load()
+	if errPtr == nil {
+		t.Fail()
+	} else if (*errPtr) != expectedErr {
+		t.Fail()
+	}
+
+	exitWithErr.Store(nil)
+	waitExitedReturned.Store(nil)
+	startWaitExited()
+
+	k.RestartRoutine()
+	k.SetRoutine(nil)
+	<-time.After(time.Millisecond * 10)
+	errPtr = waitExitedReturned.Load()
+	if errPtr == nil {
+		t.Fail()
+	} else if (*errPtr) != nil {
 		t.Fail()
 	}
 }

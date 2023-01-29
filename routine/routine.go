@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,6 +23,8 @@ type RoutineContainer struct {
 	ctx context.Context
 	// routine is the current running routine, if any
 	routine *runningRoutine
+	// bcast is broadcasted when the routine changes
+	bcast broadcast.Broadcast
 }
 
 // NewRoutineContainer constructs a new RoutineContainer.
@@ -42,6 +45,31 @@ func NewRoutineContainer(opts ...Option) *RoutineContainer {
 // Note: routines won't start until SetContext is called.
 func NewRoutineContainerWithLogger(le *logrus.Entry) *RoutineContainer {
 	return NewRoutineContainer(WithExitLogger(le))
+}
+
+// WaitExited waits for the routine to exit and returns the error if any.
+// Note: Will NOT return after the routine is restarted normally.
+func (k *RoutineContainer) WaitExited(ctx context.Context) error {
+	for {
+		k.mtx.Lock()
+		exited := k.routine == nil || k.routine.exited || k.routine.success
+		var exitedErr error
+		if exited && k.routine != nil {
+			exitedErr = k.routine.err
+		}
+		waitCh := k.bcast.GetWaitCh()
+		k.mtx.Unlock()
+
+		if exited {
+			return exitedErr
+		}
+
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case <-waitCh:
+		}
+	}
 }
 
 // SetContext updates the root context.
@@ -72,6 +100,7 @@ func (k *RoutineContainer) SetContext(ctx context.Context, restart bool) bool {
 			rr.start(ctx, rr.exitedCh, false)
 		}
 	}
+	k.bcast.Broadcast()
 	return true
 }
 
@@ -111,6 +140,7 @@ func (k *RoutineContainer) SetRoutine(routine Routine) bool {
 		k.routine = nil
 	}
 
+	k.bcast.Broadcast()
 	if routine == nil {
 		return wasReset
 	}
@@ -149,6 +179,7 @@ func (k *RoutineContainer) RestartRoutine() bool {
 		r.ctxCancel()
 		r.ctxCancel = nil
 	}
+	k.bcast.Broadcast()
 	if k.ctx == nil {
 		return false
 	}
@@ -256,6 +287,7 @@ func (r *runningRoutine) execute(
 			// run after unlocking mtx
 			defer (r.r.exitedCbs[i])(r.err)
 		}
+		r.r.bcast.Broadcast()
 	}
 	r.r.mtx.Unlock()
 }
