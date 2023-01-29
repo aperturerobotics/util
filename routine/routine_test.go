@@ -94,7 +94,7 @@ func TestRoutineContainer(t *testing.T) {
 	var waitExitedReturned atomic.Pointer[error]
 	startWaitExited := func() {
 		go func() {
-			err := k.WaitExited(ctx)
+			err := k.WaitExited(ctx, nil)
 			waitExitedReturned.Store(&err)
 		}()
 	}

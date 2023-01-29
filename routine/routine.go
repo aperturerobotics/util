@@ -49,7 +49,8 @@ func NewRoutineContainerWithLogger(le *logrus.Entry) *RoutineContainer {
 
 // WaitExited waits for the routine to exit and returns the error if any.
 // Note: Will NOT return after the routine is restarted normally.
-func (k *RoutineContainer) WaitExited(ctx context.Context) error {
+// errCh is an optional error channel (can be nil)
+func (k *RoutineContainer) WaitExited(ctx context.Context, errCh <-chan error) error {
 	for {
 		k.mtx.Lock()
 		exited := k.routine == nil || k.routine.exited || k.routine.success
@@ -67,6 +68,8 @@ func (k *RoutineContainer) WaitExited(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return context.Canceled
+		case err := <-errCh:
+			return err
 		case <-waitCh:
 		}
 	}
