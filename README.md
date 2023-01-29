@@ -14,7 +14,7 @@ Various utilities for Go and TypeScript including:
  - [ccall]: call a set of functions concurrently and wait for error or exit
  - [ccontainer]: concurrent container for objects
  - [commonprefix]: find common prefix between strings
- - [conc]: concurrent control flow / queue utilities
+ - [conc]: concurrent processing queue
  - [debounce-fswatcher]: debounce fs watcher events
  - [exec]: wrapper around Go os exec
  - [iocloser]: wrap reader/writer with a close function
@@ -26,6 +26,7 @@ Various utilities for Go and TypeScript including:
  - [prng]: psuedorandom generator with seed
  - [promise]: promise mechanics for Go (like JS)
  - [refcount]: reference counter ccontainer
+ - [routine]: start, stop, restart, reset a goroutine
  - [scrub]: zero a buffer after usage
 
 [backoff]: ./backoff
@@ -45,6 +46,7 @@ Various utilities for Go and TypeScript including:
 [prng]: ./prng
 [promise]: ./promise
 [refcount]: ./refcount
+[routine]: ./routine
 [scrub]: ./scrub
 
 ## License

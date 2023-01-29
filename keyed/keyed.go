@@ -36,7 +36,6 @@ type Keyed[K comparable, V any] struct {
 
 // NewKeyed constructs a new Keyed execution manager.
 // Note: routines won't start until SetContext is called.
-// exitedCb is called after a routine exits unexpectedly.
 func NewKeyed[K comparable, V any](
 	ctorCb func(key K) (Routine, V),
 	opts ...Option[K, V],
@@ -64,7 +63,6 @@ func NewKeyed[K comparable, V any](
 // Logs when a controller exits without being removed from the Keys set.
 //
 // Note: routines won't start until SetContext is called.
-// exitedCb is called after a routine exits unexpectedly.
 func NewKeyedWithLogger[K comparable, V any](
 	ctorCb func(key K) (Routine, V),
 	le *logrus.Entry,
@@ -314,9 +312,10 @@ func (k *Keyed[K, V]) RestartRoutine(key K, conds ...func(V) bool) (existed bool
 
 	if v.ctxCancel != nil {
 		v.ctxCancel()
+		v.ctxCancel = nil
 	}
-	prevExitedCh := v.exitedCh
 	if k.ctx != nil {
+		prevExitedCh := v.exitedCh
 		v.start(k.ctx, prevExitedCh, true)
 	}
 
