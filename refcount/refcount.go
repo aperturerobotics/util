@@ -269,6 +269,12 @@ func (r *RefCount[T]) removeRef(ref *Ref[T]) {
 // expects mtx is locked by caller
 func (r *RefCount[T]) shutdown() {
 	r.nonce++
+	r.clearResolvedState()
+}
+
+// clearResolvedState clears the resolved state.
+// expects mtx is locked by caller
+func (r *RefCount[T]) clearResolvedState() {
 	if r.resolved {
 		r.resolved = false
 		if r.valueErr != nil {
@@ -299,18 +305,14 @@ func (r *RefCount[T]) shutdown() {
 // startResolveLocked starts the resolve goroutine.
 // expects caller to lock mutex.
 func (r *RefCount[T]) startResolveLocked() {
-	if r.resolveCtxCancel != nil {
-		r.resolveCtxCancel()
-	}
+	r.shutdown()
 	if r.ctx == nil || len(r.refs) == 0 {
-		r.resolveCtxCancel = nil
 		return
 	}
 	waitCh := r.waitCh
 	doneCh := make(chan struct{})
 	r.waitCh = doneCh
 	r.resolveCtx, r.resolveCtxCancel = context.WithCancel(r.ctx)
-	r.nonce++
 	nonce := r.nonce
 	go r.resolve(r.resolveCtx, waitCh, doneCh, nonce)
 }
