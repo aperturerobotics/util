@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
+	"github.com/pkg/errors"
 )
 
 // Stop indicates that no more retries should be made for use in NextBackOff().
@@ -25,6 +26,29 @@ func (b *Backoff) Construct() backoff.BackOff {
 	case BackoffKind_BackoffKind_CONSTANT:
 		return b.constructConstant()
 	}
+}
+
+// Validate validates the backoff kind.
+func (b BackoffKind) Validate() error {
+	switch b {
+	case BackoffKind_BackoffKind_UNKNOWN:
+	case BackoffKind_BackoffKind_EXPONENTIAL:
+	case BackoffKind_BackoffKind_CONSTANT:
+	default:
+		return errors.Errorf("unknown backoff kind: %s", b.String())
+	}
+	return nil
+}
+
+// Validate validates the backoff config.
+func (b *Backoff) Validate(allowEmpty bool) error {
+	if !allowEmpty && b.GetEmpty() {
+		return errors.New("backoff must be set")
+	}
+	if err := b.GetBackoffKind().Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // constructExpo constructs an exponential backoff.
