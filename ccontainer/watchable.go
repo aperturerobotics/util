@@ -29,3 +29,33 @@ type Watchable[T comparable] interface {
 func ToWatchable[T comparable](ctr *CContainer[T]) Watchable[T] {
 	return ctr
 }
+
+// WatchChanges watches a Watchable and calls the callback when the value
+// changes. Note: the value pointer must change to trigger an update.
+//
+// initial is the initial value to wait for changes on.
+// set initial to nil to wait for value != nil.
+//
+// T is the type of the message.
+// errCh is an optional error channel to interrupt the operation.
+func WatchChanges[T comparable](
+	ctx context.Context,
+	initialVal T,
+	ctr Watchable[T],
+	updateCb func(msg T) error,
+	errCh <-chan error,
+) error {
+	// watch for changes
+	current := initialVal
+	for {
+		next, err := ctr.WaitValueChange(ctx, current, errCh)
+		if err != nil {
+			return err
+		}
+
+		current = next
+		if err := updateCb(next); err != nil {
+			return err
+		}
+	}
+}
