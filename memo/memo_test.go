@@ -17,11 +17,13 @@ func TestMemoizeFunc(t *testing.T) {
 	}
 	memoFn := MemoizeFunc(fn)
 	for i := 0; i < 10; i++ {
-		go memoFn()
+		go func() {
+			_, _ = memoFn()
+		}()
 	}
 	var returned atomic.Bool
 	go func() {
-		memoFn()
+		_, _ = memoFn()
 		returned.Store(true)
 	}()
 	<-time.After(time.Millisecond * 50)

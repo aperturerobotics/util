@@ -294,14 +294,3 @@ func (r *runningRoutine) execute(
 	}
 	r.r.mtx.Unlock()
 }
-
-// removeLocked is called when the routine is removed / canceled.
-// expects r.k.mtx to be locked
-func (r *runningRoutine) removeLocked() {
-	if r.ctxCancel != nil {
-		r.ctxCancel()
-	}
-	if r.r.routine == r {
-		r.r.routine = nil
-	}
-}

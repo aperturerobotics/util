@@ -17,5 +17,5 @@ require (
 
 require (
 	github.com/google/go-cmp v0.5.7 // indirect
-	golang.org/x/sys v0.1.1-0.20221025174404-572649812736 // indirect
+	golang.org/x/sys v0.4.1-0.20230131160137-e7d7f63158de // indirect
 )
