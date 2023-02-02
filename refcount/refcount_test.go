@@ -126,3 +126,46 @@ func TestRefCount_Released(t *testing.T) {
 		t.Fatalf("expected value to be %v but had %v", ctr, *v2)
 	}
 }
+
+// TestRefCount_WaitWithReleased tests the RefCount wait with released mechanism.
+func TestRefCount_WaitWithReleased(t *testing.T) {
+	ctx := context.Background()
+	doCallReleased := make(chan struct{})
+	rc := NewRefCount(nil, nil, nil, func(ctx context.Context, released func()) (*bool, func(), error) {
+		go func() {
+			<-doCallReleased
+			released()
+		}()
+		ret := true
+		return &ret, func() {}, nil
+	})
+
+	var releasedCalled atomic.Bool
+	valProm, ref, err := rc.WaitWithReleased(ctx, func() {
+		if releasedCalled.Swap(true) {
+			t.Fatal("released was called multiple times")
+		}
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ref.Release()
+
+	rc.SetContext(ctx)
+	val, err := valProm.Await(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if val == nil || *val != true {
+		t.Fail()
+	}
+	if releasedCalled.Load() {
+		t.Fail()
+	}
+	close(doCallReleased)
+	<-time.After(time.Millisecond * 50)
+	if !releasedCalled.Load() {
+		t.Fail()
+	}
+	ref.Release()
+}

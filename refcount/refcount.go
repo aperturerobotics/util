@@ -157,7 +157,7 @@ func (r *RefCount[T]) WaitPromise(ctx context.Context) (promise.PromiseLike[T], 
 func (r *RefCount[T]) Wait(ctx context.Context) (T, *Ref[T], error) {
 	prom := promise.NewPromise[T]()
 	ref := r.AddRef(func(resolved bool, val T, err error) {
-		if resolved {
+		if resolved || err != nil {
 			prom.SetResult(val, err)
 		}
 	})
@@ -167,6 +167,43 @@ func (r *RefCount[T]) Wait(ctx context.Context) (T, *Ref[T], error) {
 		return val, nil, err
 	}
 	return val, ref, nil
+}
+
+// WaitWithReleased adds a reference, waits for a value, returns the value and a release function.
+// Calls the released callback (if set) when the value or reference is released.
+// Note: it's very unlikely, but still possible, that released will be called before the promise resolves.
+// Note: released will always be called from a new goroutine.
+// Note: this matches the signature of the refcount resolver function.
+func (r *RefCount[T]) WaitWithReleased(ctx context.Context, released func()) (promise.PromiseLike[T], *Ref[T], error) {
+	prom := promise.NewPromise[T]()
+	// fields guarded by r.mtx
+	var currResolved bool
+	var currNonce uint32
+	var callReleasedOnce sync.Once
+	var ref *Ref[T]
+	ref = r.AddRef(func(resolved bool, val T, err error) {
+		// note: r.mtx is held while calling this function.
+		// check if state is different, if we returned already.
+		if currResolved {
+			if !resolved || r.nonce != currNonce {
+				callReleasedOnce.Do(func() {
+					go func() {
+						ref.Release()
+						if released != nil {
+							released()
+						}
+					}()
+				})
+			}
+			return
+		}
+		if resolved || err != nil {
+			currResolved = true
+			currNonce = r.nonce
+			prom.SetResult(val, err)
+		}
+	})
+	return prom, ref, nil
 }
 
 // Access adds a reference, waits for a value, and calls the callback.
