@@ -31,6 +31,7 @@ func TestMemoizeFunc(t *testing.T) {
 		t.Fail()
 	}
 	close(complete)
+	<-time.After(time.Millisecond * 50)
 	res, err := memoFn()
 	if err != nil || res != 1 {
 		t.Fail()
