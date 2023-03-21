@@ -13,14 +13,14 @@ require (
 	github.com/golangci/golangci-lint v1.52.0
 	github.com/planetscale/vtprotobuf v0.4.0
 	github.com/psampaz/go-mod-outdated v0.9.0
-	google.golang.org/protobuf v1.28.2-0.20230209092751-246af0d153ca
+	google.golang.org/protobuf v1.30.0
 )
 
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/starpc v0.18.2
-	github.com/aperturerobotics/util v1.0.5
-	github.com/evanw/esbuild v0.17.11
+	github.com/aperturerobotics/starpc v0.18.3
+	github.com/aperturerobotics/util v1.0.6-0.20230313071030-6260e05b62e5
+	github.com/evanw/esbuild v0.17.12
 	storj.io/drpc v0.0.32
 )
 
