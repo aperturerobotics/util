@@ -94,7 +94,7 @@ func TestRoutineContainer(t *testing.T) {
 	var waitExitedReturned atomic.Pointer[error]
 	startWaitExited := func() {
 		go func() {
-			err := k.WaitExited(ctx, nil)
+			err := k.WaitExited(ctx, true, nil)
 			waitExitedReturned.Store(&err)
 		}()
 	}
@@ -161,6 +161,54 @@ func TestRoutineContainer(t *testing.T) {
 	if errPtr == nil {
 		t.Fail()
 	} else if (*errPtr) != nil {
+		t.Fail()
+	}
+}
+
+// TestRoutineContainer_WaitExited tests the routine container wait exited func.
+func TestRoutineContainer_WaitExited(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	vals := make(chan struct{}, 1)
+	routineFn := func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case vals <- struct{}{}:
+			return nil
+		}
+	}
+
+	k := NewRoutineContainerWithLogger(le)
+	var waitExitedReturned atomic.Bool
+	go func() {
+		_ = k.WaitExited(ctx, false, nil)
+		waitExitedReturned.Store(true)
+	}()
+	<-time.After(time.Millisecond * 100)
+	if waitExitedReturned.Load() {
+		t.Fail()
+	}
+	if wasReset := k.SetRoutine(routineFn); wasReset {
+		// expected !wasReset before context is set
+		t.Fail()
+	}
+	if !k.SetContext(ctx, true) {
+		// expected to start with this call
+		t.Fail()
+	}
+
+	// expect value to be pushed to vals
+	<-time.After(time.Millisecond * 10)
+	select {
+	case <-vals:
+	default:
+		t.Fail()
+	}
+	if !waitExitedReturned.Load() {
 		t.Fail()
 	}
 }

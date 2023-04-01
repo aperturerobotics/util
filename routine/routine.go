@@ -49,14 +49,22 @@ func NewRoutineContainerWithLogger(le *logrus.Entry) *RoutineContainer {
 
 // WaitExited waits for the routine to exit and returns the error if any.
 // Note: Will NOT return after the routine is restarted normally.
+// If returnIfNotRunning is set, returns nil if no routine is running.
 // errCh is an optional error channel (can be nil)
-func (k *RoutineContainer) WaitExited(ctx context.Context, errCh <-chan error) error {
+func (k *RoutineContainer) WaitExited(ctx context.Context, returnIfNotRunning bool, errCh <-chan error) error {
 	for {
 		k.mtx.Lock()
-		exited := k.routine == nil || k.routine.exited || k.routine.success
+		var exited bool
 		var exitedErr error
-		if exited && k.routine != nil {
-			exitedErr = k.routine.err
+		if k.routine != nil {
+			exited = k.routine.exited || k.routine.success
+			if exited {
+				exitedErr = k.routine.err
+			}
+		} else {
+			if returnIfNotRunning {
+				exited = true
+			}
 		}
 		waitCh := k.bcast.GetWaitCh()
 		k.mtx.Unlock()
