@@ -45,24 +45,16 @@ func TestProxyStreams(t *testing.T) {
 	}()
 
 	// Read the data from s2Reader.
-	var result []byte
-	buf := make([]byte, 8192)
-	for {
-		n, err := s2Reader.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			t.Fatal(err)
-		}
-		result = append(result, buf[:n]...)
+	buf, err := io.ReadAll(s2Reader)
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
 	// Wait for the callbacks to be called.
 	wg.Wait()
 
 	// Check if the data was correctly proxied.
-	if !bytes.Equal(data, result) {
+	if !bytes.Equal(data, buf) {
 		t.Fail()
 	}
 }
