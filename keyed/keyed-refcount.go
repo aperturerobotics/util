@@ -78,8 +78,15 @@ func NewKeyedRefCountWithLogger[K comparable, V any](
 
 // SetContext updates the root context, restarting all running routines.
 // if restart is true, all errored routines also restart
+//
+// nil context is valid and will shutdown the routines.
 func (k *KeyedRefCount[K, V]) SetContext(ctx context.Context, restart bool) {
 	k.keyed.SetContext(ctx, restart)
+}
+
+// ClearContext clears the context and shuts down all routines.
+func (k *KeyedRefCount[K, V]) ClearContext() {
+	k.keyed.ClearContext()
 }
 
 // GetKeys returns the list of keys registered with the Keyed instance.

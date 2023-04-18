@@ -120,6 +120,11 @@ func (r *RefCount[T]) SetContext(ctx context.Context) {
 	r.mtx.Unlock()
 }
 
+// ClearContext clears the context and shuts down all routines.
+func (r *RefCount[T]) ClearContext() {
+	r.SetContext(nil)
+}
+
 // AddRef adds a reference to the RefCount container.
 // cb is an optional callback to call when the value changes.
 // the callback will be called with an empty value when the value becomes empty.

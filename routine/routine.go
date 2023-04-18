@@ -84,8 +84,10 @@ func (k *RoutineContainer) WaitExited(ctx context.Context, returnIfNotRunning bo
 }
 
 // SetContext updates the root context.
-// If ctx == nil, stops the routine.
+//
+// nil context is valid and will shutdown the routines.
 // if restart is true, errored routines will also restart.
+//
 // Returns if the routine was stopped or restarted.
 func (k *RoutineContainer) SetContext(ctx context.Context, restart bool) bool {
 	k.mtx.Lock()
@@ -113,6 +115,13 @@ func (k *RoutineContainer) SetContext(ctx context.Context, restart bool) bool {
 	}
 	k.bcast.Broadcast()
 	return true
+}
+
+// ClearContext clears the context and shuts down all routines.
+//
+// Returns if the routine was stopped or restarted.
+func (k *RoutineContainer) ClearContext() bool {
+	return k.SetContext(nil, false)
 }
 
 // SetRoutine sets the routine to execute, resetting the existing, if set.

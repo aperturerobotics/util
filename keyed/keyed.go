@@ -71,7 +71,8 @@ func NewKeyedWithLogger[K comparable, V any](
 }
 
 // SetContext updates the root context, restarting all running routines.
-// If ctx == nil, stops all routines.
+//
+// nil context is valid and will shutdown the routines.
 // if restart is true, all errored routines also restart
 func (k *Keyed[K, V]) SetContext(ctx context.Context, restart bool) {
 	k.mtx.Lock()
@@ -98,6 +99,11 @@ func (k *Keyed[K, V]) SetContext(ctx context.Context, restart bool) {
 			}
 		}
 	}
+}
+
+// ClearContext clears the context and shuts down any running routines.
+func (k *Keyed[K, V]) ClearContext() {
+	k.SetContext(nil, false)
 }
 
 // GetKeys returns the list of keys registered with the Keyed instance.

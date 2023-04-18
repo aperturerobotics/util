@@ -26,6 +26,8 @@ func NewPromiseContainer[T any]() *PromiseContainer[T] {
 
 // GetPromise returns the Promise contained in the PromiseContainer and a
 // channel that is closed when the Promise is replaced.
+//
+// Note that promise may be nil.
 func (c *PromiseContainer[T]) GetPromise() (PromiseLike[T], <-chan struct{}) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
@@ -119,7 +121,12 @@ func (p *PromiseContainer[T]) AwaitWithErrCh(ctx context.Context, errCh <-chan e
 }
 
 // AwaitWithCancelCh waits for the result to be set or for the channel to be written to and/or closed.
+//
 // CancelCh could be a context.Done() channel.
+//
+// Will return nil, nil if the cancelCh is closed.
+// Returns nil, context.Canceled if ctx is canceled.
+// Otherwise waits for a value or an error to be set to the promise.
 func (p *PromiseContainer[T]) AwaitWithCancelCh(ctx context.Context, cancelCh <-chan struct{}) (val T, err error) {
 	for {
 		p.mtx.Lock()
