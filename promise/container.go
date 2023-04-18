@@ -24,6 +24,14 @@ func NewPromiseContainer[T any]() *PromiseContainer[T] {
 	return &PromiseContainer[T]{}
 }
 
+// GetPromise returns the Promise contained in the PromiseContainer and a
+// channel that is closed when the Promise is replaced.
+func (c *PromiseContainer[T]) GetPromise() (PromiseLike[T], <-chan struct{}) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	return c.promise, c.replaced.GetWaitCh()
+}
+
 // SetPromise updates the Promise contained in the PromiseContainer.
 // Note: this does not do anything with the old promise.
 func (c *PromiseContainer[T]) SetPromise(p PromiseLike[T]) {
