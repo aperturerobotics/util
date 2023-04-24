@@ -78,7 +78,11 @@ export interface Exponential {
   maxInterval: number;
   /**
    * RandomizationFactor is the randomization factor.
-   * Default: 0
+   * Should be from [0, 1] as a percentage of the retry interval.
+   *
+   * randomized interval = RetryInterval * (random value in range [1 - RandomizationFactor, 1 + RandomizationFactor])
+   *
+   * Default: 0 (disabled)
    */
   randomizationFactor: number;
   /**

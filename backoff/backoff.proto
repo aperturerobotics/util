@@ -34,7 +34,11 @@ message Exponential {
   // Default: 20 seconds
   uint32 max_interval = 3;
   // RandomizationFactor is the randomization factor.
-  // Default: 0
+  // Should be from [0, 1] as a percentage of the retry interval.
+  //
+  // randomized interval = RetryInterval * (random value in range [1 - RandomizationFactor, 1 + RandomizationFactor])
+  //
+  // Default: 0 (disabled)
   float randomization_factor = 4;
   // MaxElapsedTime if set specifies a maximum time for the backoff, in milliseconds.
   // After this time the backoff and attached process terminates.

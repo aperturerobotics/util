@@ -157,7 +157,11 @@ type Exponential struct {
 	// Default: 20 seconds
 	MaxInterval uint32 `protobuf:"varint,3,opt,name=max_interval,json=maxInterval,proto3" json:"max_interval,omitempty"`
 	// RandomizationFactor is the randomization factor.
-	// Default: 0
+	// Should be from [0, 1] as a percentage of the retry interval.
+	//
+	// randomized interval = RetryInterval * (random value in range [1 - RandomizationFactor, 1 + RandomizationFactor])
+	//
+	// Default: 0 (disabled)
 	RandomizationFactor float32 `protobuf:"fixed32,4,opt,name=randomization_factor,json=randomizationFactor,proto3" json:"randomization_factor,omitempty"`
 	// MaxElapsedTime if set specifies a maximum time for the backoff, in milliseconds.
 	// After this time the backoff and attached process terminates.
