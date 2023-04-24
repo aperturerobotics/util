@@ -43,8 +43,8 @@ func NewRoutineContainer(opts ...Option) *RoutineContainer {
 // Logs when a controller exits without being canceled.
 //
 // Note: routines won't start until SetContext is called.
-func NewRoutineContainerWithLogger(le *logrus.Entry) *RoutineContainer {
-	return NewRoutineContainer(WithExitLogger(le))
+func NewRoutineContainerWithLogger(le *logrus.Entry, opts ...Option) *RoutineContainer {
+	return NewRoutineContainer(append([]Option{WithExitLogger(le)}, opts...)...)
 }
 
 // WaitExited waits for the routine to exit and returns the error if any.
@@ -182,6 +182,11 @@ func (k *RoutineContainer) RestartRoutine() bool {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
+	return k.restartRoutineLocked(false)
+}
+
+// restartRoutineLocked restarts the running routine (if set) while locked.
+func (k *RoutineContainer) restartRoutineLocked(onlyIfExited bool) bool {
 	if k.ctx != nil {
 		select {
 		case <-k.ctx.Done():
@@ -192,6 +197,9 @@ func (k *RoutineContainer) RestartRoutine() bool {
 
 	r := k.routine
 	if r == nil {
+		return false
+	}
+	if onlyIfExited && !r.exited {
 		return false
 	}
 

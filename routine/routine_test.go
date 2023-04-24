@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/sirupsen/logrus"
 )
 
@@ -211,4 +212,47 @@ func TestRoutineContainer_WaitExited(t *testing.T) {
 	if !waitExitedReturned.Load() {
 		t.Fail()
 	}
+}
+
+// TestRoutineContainer_WithBackoff tests the routine container backoff.
+func TestRoutineContainer_WithBackoff(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	vals := make(chan struct{}, 1)
+	retErrs := 5
+	routineFn := func(ctx context.Context) error {
+		retErrs--
+		if retErrs != 0 {
+			return errors.New("returned error to test backoff")
+		}
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case vals <- struct{}{}:
+			return nil
+		}
+	}
+
+	bo := (&backoff.Backoff{
+		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+		Exponential: &backoff.Exponential{
+			InitialInterval: 100,
+			MaxInterval:     500,
+		},
+	}).Construct()
+	k := NewRoutineContainer(WithBackoff(bo, le))
+	if wasReset := k.SetRoutine(routineFn); wasReset {
+		// expected !wasReset before context is set
+		t.Fail()
+	}
+	if !k.SetContext(ctx, true) {
+		// expected to start with this call
+		t.Fail()
+	}
+
+	// expect backoffs to occur
+	<-vals
 }
