@@ -2,8 +2,9 @@ package gitcmd
 
 import (
 	"bufio"
-	util_bufio "github.com/aperturerobotics/util/bufio"
 	"os/exec"
+
+	util_bufio "github.com/aperturerobotics/util/bufio"
 )
 
 // ListGitFiles runs "git ls-files" to list all files in a Git workdir including

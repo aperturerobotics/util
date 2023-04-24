@@ -7,191 +7,191 @@ type GoDistEntry struct {
 
 var KnownGoDists = []*GoDistEntry{
 	{
-		GOOS: "aix",
+		GOOS:   "aix",
 		GOARCH: "ppc64",
 	},
 	{
-		GOOS: "android",
+		GOOS:   "android",
 		GOARCH: "386",
 	},
 	{
-		GOOS: "android",
+		GOOS:   "android",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "android",
+		GOOS:   "android",
 		GOARCH: "arm",
 	},
 	{
-		GOOS: "android",
+		GOOS:   "android",
 		GOARCH: "arm64",
 	},
 	{
-		GOOS: "darwin",
+		GOOS:   "darwin",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "darwin",
+		GOOS:   "darwin",
 		GOARCH: "arm64",
 	},
 	{
-		GOOS: "dragonfly",
+		GOOS:   "dragonfly",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "freebsd",
+		GOOS:   "freebsd",
 		GOARCH: "386",
 	},
 	{
-		GOOS: "freebsd",
+		GOOS:   "freebsd",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "freebsd",
+		GOOS:   "freebsd",
 		GOARCH: "arm",
 	},
 	{
-		GOOS: "freebsd",
+		GOOS:   "freebsd",
 		GOARCH: "arm64",
 	},
 	{
-		GOOS: "freebsd",
+		GOOS:   "freebsd",
 		GOARCH: "riscv64",
 	},
 	{
-		GOOS: "illumos",
+		GOOS:   "illumos",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "ios",
+		GOOS:   "ios",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "ios",
+		GOOS:   "ios",
 		GOARCH: "arm64",
 	},
 	{
-		GOOS: "js",
+		GOOS:   "js",
 		GOARCH: "wasm",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "386",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "arm",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "arm64",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "loong64",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "mips",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "mips64",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "mips64le",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "mipsle",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "ppc64",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "ppc64le",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "riscv64",
 	},
 	{
-		GOOS: "linux",
+		GOOS:   "linux",
 		GOARCH: "s390x",
 	},
 	{
-		GOOS: "netbsd",
+		GOOS:   "netbsd",
 		GOARCH: "386",
 	},
 	{
-		GOOS: "netbsd",
+		GOOS:   "netbsd",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "netbsd",
+		GOOS:   "netbsd",
 		GOARCH: "arm",
 	},
 	{
-		GOOS: "netbsd",
+		GOOS:   "netbsd",
 		GOARCH: "arm64",
 	},
 	{
-		GOOS: "openbsd",
+		GOOS:   "openbsd",
 		GOARCH: "386",
 	},
 	{
-		GOOS: "openbsd",
+		GOOS:   "openbsd",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "openbsd",
+		GOOS:   "openbsd",
 		GOARCH: "arm",
 	},
 	{
-		GOOS: "openbsd",
+		GOOS:   "openbsd",
 		GOARCH: "arm64",
 	},
 	{
-		GOOS: "openbsd",
+		GOOS:   "openbsd",
 		GOARCH: "mips64",
 	},
 	{
-		GOOS: "plan9",
+		GOOS:   "plan9",
 		GOARCH: "386",
 	},
 	{
-		GOOS: "plan9",
+		GOOS:   "plan9",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "plan9",
+		GOOS:   "plan9",
 		GOARCH: "arm",
 	},
 	{
-		GOOS: "solaris",
+		GOOS:   "solaris",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "windows",
+		GOOS:   "windows",
 		GOARCH: "386",
 	},
 	{
-		GOOS: "windows",
+		GOOS:   "windows",
 		GOARCH: "amd64",
 	},
 	{
-		GOOS: "windows",
+		GOOS:   "windows",
 		GOARCH: "arm",
 	},
 	{
-		GOOS: "windows",
+		GOOS:   "windows",
 		GOARCH: "arm64",
 	},
 }
