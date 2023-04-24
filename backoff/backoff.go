@@ -80,6 +80,7 @@ func (b *Backoff) constructExpo() backoff.BackOff {
 	} else {
 		expo.MaxElapsedTime = time.Duration(opts.GetMaxElapsedTime()) * time.Millisecond
 	}
+	expo.Reset()
 	return expo
 }
 
@@ -89,5 +90,7 @@ func (b *Backoff) constructConstant() backoff.BackOff {
 	if dur == 0 {
 		dur = 5000
 	}
-	return backoff.NewConstantBackOff(time.Duration(dur) * time.Millisecond)
+	bo := backoff.NewConstantBackOff(time.Duration(dur) * time.Millisecond)
+	bo.Reset()
+	return bo
 }
