@@ -36,7 +36,7 @@ func TestRefCount(t *testing.T) {
 	}
 
 	firstRef := ref
-	prom, ref := rc.WaitPromise(ctx)
+	prom, ref := rc.AddRefPromise()
 	// release the first ref after adding the second
 	firstRef.Release()
 	val, err := prom.Await(ctx)

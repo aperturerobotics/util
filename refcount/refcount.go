@@ -143,8 +143,8 @@ func (r *RefCount[T]) AddRef(cb func(resolved bool, val T, err error)) *Ref[T] {
 	return nref
 }
 
-// WaitPromise adds a reference and returns a promise with the value.
-func (r *RefCount[T]) WaitPromise(ctx context.Context) (promise.PromiseLike[T], *Ref[T]) {
+// AddRefPromise adds a reference and returns a promise with the value.
+func (r *RefCount[T]) AddRefPromise() (promise.PromiseLike[T], *Ref[T]) {
 	promCtr := promise.NewPromiseContainer[T]()
 	ref := r.AddRef(func(resolved bool, val T, err error) {
 		if !resolved {
