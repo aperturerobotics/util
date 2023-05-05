@@ -21,6 +21,8 @@ type ConcurrentQueue struct {
 	running int
 	// jobQueue is the job queue linked list.
 	jobQueue *linkedlist.LinkedList[func()]
+	// jobQueueSize is the current size of jobQueue
+	jobQueueSize int
 }
 
 // NewConcurrentQueue constructs a new stream concurrency manager.
@@ -29,6 +31,7 @@ type ConcurrentQueue struct {
 func NewConcurrentQueue(maxConcurrency int, initialElems ...func()) *ConcurrentQueue {
 	str := &ConcurrentQueue{
 		jobQueue:       linkedlist.NewLinkedList(initialElems...),
+		jobQueueSize:   len(initialElems),
 		maxConcurrency: maxConcurrency,
 	}
 	if len(initialElems) != 0 {
@@ -40,23 +43,28 @@ func NewConcurrentQueue(maxConcurrency int, initialElems ...func()) *ConcurrentQ
 }
 
 // Enqueue enqueues a job callback to the stream.
-// Returns the current number of queued jobs.
-// Note: may return 0 if the job was started immediately & the queue is empty.
-func (s *ConcurrentQueue) Enqueue(jobs ...func()) {
-	if len(jobs) == 0 {
-		return
-	}
+// If possible, the job is started immediately and skips the queue.
+// Returns the current number of queued and running jobs.
+func (s *ConcurrentQueue) Enqueue(jobs ...func()) (queued, running int) {
 	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	if len(jobs) == 0 {
+		return s.jobQueueSize, s.running
+	}
+
 	for _, job := range jobs {
 		if s.maxConcurrency <= 0 || s.running < s.maxConcurrency {
 			s.running++
 			go s.executeJob(job)
 		} else {
+			s.jobQueueSize++
 			s.jobQueue.Push(job)
 		}
 	}
+
 	s.bcast.Broadcast()
-	s.mtx.Unlock()
+	return s.jobQueueSize, s.running
 }
 
 // WaitIdle waits for no jobs to be running.
@@ -86,6 +94,39 @@ func (s *ConcurrentQueue) WaitIdle(ctx context.Context, errCh <-chan error) erro
 	}
 }
 
+// WatchState watches the concurrent queue state.
+// If the callback returns an error or false, returns that error or nil.
+// Returns nil immediately if callback is nil.
+// Returns context.Canceled if ctx is canceled.
+// errCh is an optional error channel.
+func (s *ConcurrentQueue) WatchState(
+	ctx context.Context,
+	errCh <-chan error,
+	cb func(queued, running int) (bool, error),
+) error {
+	if cb == nil {
+		return nil
+	}
+
+	for {
+		s.mtx.Lock()
+		queued, running := s.jobQueueSize, s.running
+		waitCh := s.bcast.GetWaitCh()
+		s.mtx.Unlock()
+
+		cntu, err := cb(queued, running)
+		if err != nil || !cntu {
+			return err
+		}
+
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case <-waitCh:
+		}
+	}
+}
+
 // updateLocked checks if we need to spawn any new routines.
 // caller must hold mtx
 func (s *ConcurrentQueue) updateLocked() {
@@ -95,6 +136,7 @@ func (s *ConcurrentQueue) updateLocked() {
 		if !jobOk {
 			break
 		}
+		s.jobQueueSize--
 		s.running++
 		dirty = true
 		go s.executeJob(job)
@@ -117,6 +159,8 @@ func (s *ConcurrentQueue) executeJob(job func()) {
 		if !jobOk {
 			s.running--
 			s.bcast.Broadcast()
+		} else {
+			s.jobQueueSize--
 		}
 		s.mtx.Unlock()
 		if !jobOk {

@@ -18,28 +18,29 @@ func TestConcurrentQueue(t *testing.T) {
 			<-complete
 		}
 	}
-	q := NewConcurrentQueue(2, mkJob(), mkJob())
-	q.Enqueue(mkJob(), mkJob())
+	q := NewConcurrentQueue(2, mkJob())
+	queued, running := q.Enqueue(mkJob(), mkJob(), mkJob(), mkJob())
+	if queued != 3 || running != 2 {
+		t.FailNow()
+	}
 
 	// expect 0 + 1 to complete immediately
 	<-jobs[0]
 	<-jobs[1]
 
-	// expect 2 + 3 to not be started yet
-	select {
-	case <-jobs[2]:
-		t.Fail()
-	default:
-	}
-	select {
-	case <-jobs[3]:
-		t.Fail()
-	default:
+	// expect 2 + 3 + 4 to not be started yet
+	for i := 2; i <= 4; i++ {
+		select {
+		case <-jobs[i]:
+			t.Fail()
+		default:
+		}
 	}
 
 	close(complete)
 
-	// expect 2 + 3 to complete
+	// expect 2 + 3 + 4 to complete
 	<-jobs[2]
 	<-jobs[3]
+	<-jobs[4]
 }
