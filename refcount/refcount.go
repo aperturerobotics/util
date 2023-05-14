@@ -48,6 +48,12 @@ type RefCount[T comparable] struct {
 	valueRel func()
 }
 
+// RefLike is an interface implemented by Ref.
+type RefLike interface {
+	// Release releases the reference.
+	Release()
+}
+
 // Ref is a reference to a RefCount.
 type Ref[T comparable] struct {
 	rc  *RefCount[T]
@@ -425,3 +431,6 @@ func (r *RefCount[T]) callRefCbsLocked(resolved bool, val T, err error) {
 		}
 	}
 }
+
+// _ is a type assertion
+var _ RefLike = (*Ref[*struct{}])(nil)
