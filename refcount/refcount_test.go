@@ -94,7 +94,7 @@ func TestRefCount_Released(t *testing.T) {
 	}
 
 	var v1 *int
-	gotErr := rc.Access(ctx, func(ctx context.Context, val *int) error {
+	gotErr := rc.Access(ctx, false, func(ctx context.Context, val *int) error {
 		v1 = val
 		return nil
 	})
@@ -109,7 +109,7 @@ func TestRefCount_Released(t *testing.T) {
 	<-time.After(time.Millisecond * 50)
 
 	var v2 *int
-	gotErr = rc.Access(ctx, func(ctx context.Context, val *int) error {
+	gotErr = rc.Access(ctx, false, func(ctx context.Context, val *int) error {
 		v2 = val
 		return nil
 	})

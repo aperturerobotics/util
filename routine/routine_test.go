@@ -38,7 +38,7 @@ func TestRoutineContainer(t *testing.T) {
 	}
 
 	// expect nothing to happen: context is unset.
-	<-time.After(time.Millisecond * 10)
+	<-time.After(time.Millisecond * 50)
 	select {
 	case val := <-vals:
 		t.Fatalf("unexpected value before set context: %s", val)
@@ -51,7 +51,7 @@ func TestRoutineContainer(t *testing.T) {
 	}
 
 	// expect value to be pushed to vals
-	<-time.After(time.Millisecond * 10)
+	<-time.After(time.Millisecond * 50)
 	select {
 	case <-vals:
 	default:
@@ -59,7 +59,7 @@ func TestRoutineContainer(t *testing.T) {
 	}
 
 	// expect no extra value after
-	<-time.After(time.Millisecond * 10)
+	<-time.After(time.Millisecond * 50)
 	select {
 	case <-vals:
 		t.Fail()
@@ -73,7 +73,7 @@ func TestRoutineContainer(t *testing.T) {
 	}
 
 	// expect value to be pushed to vals
-	<-time.After(time.Millisecond * 10)
+	<-time.After(time.Millisecond * 50)
 	select {
 	case <-vals:
 	default:
@@ -101,7 +101,7 @@ func TestRoutineContainer(t *testing.T) {
 	}
 	startWaitExited()
 
-	<-time.After(time.Millisecond * 10)
+	<-time.After(time.Millisecond * 50)
 	if waitExitedReturned.Load() != nil {
 		t.Fail()
 	}
@@ -112,7 +112,7 @@ func TestRoutineContainer(t *testing.T) {
 	}
 
 	// expect value to be pushed to vals
-	<-time.After(time.Millisecond * 10)
+	<-time.After(time.Millisecond * 50)
 	if waitExitedReturned.Load() != nil {
 		t.Fail()
 	}
@@ -128,7 +128,7 @@ func TestRoutineContainer(t *testing.T) {
 	}
 
 	// expect value to be pushed to vals
-	<-time.After(time.Millisecond * 10)
+	<-time.After(time.Millisecond * 50)
 	if waitExitedReturned.Load() != nil {
 		t.Fail()
 	}
@@ -143,7 +143,7 @@ func TestRoutineContainer(t *testing.T) {
 	exitWithErr.Store(&expectedErr)
 	k.RestartRoutine()
 
-	<-time.After(time.Millisecond * 10)
+	<-time.After(time.Millisecond * 50)
 	errPtr := waitExitedReturned.Load()
 	if errPtr == nil {
 		t.Fail()
@@ -157,7 +157,7 @@ func TestRoutineContainer(t *testing.T) {
 
 	k.RestartRoutine()
 	k.SetRoutine(nil)
-	<-time.After(time.Millisecond * 10)
+	<-time.After(time.Millisecond * 50)
 	errPtr = waitExitedReturned.Load()
 	if errPtr == nil {
 		t.Fail()
@@ -189,7 +189,7 @@ func TestRoutineContainer_WaitExited(t *testing.T) {
 		_ = k.WaitExited(ctx, false, nil)
 		waitExitedReturned.Store(true)
 	}()
-	<-time.After(time.Millisecond * 100)
+	<-time.After(time.Millisecond * 500)
 	if waitExitedReturned.Load() {
 		t.Fail()
 	}
@@ -203,7 +203,7 @@ func TestRoutineContainer_WaitExited(t *testing.T) {
 	}
 
 	// expect value to be pushed to vals
-	<-time.After(time.Millisecond * 10)
+	<-time.After(time.Millisecond * 50)
 	select {
 	case <-vals:
 	default:

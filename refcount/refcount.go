@@ -117,18 +117,41 @@ func WaitRefCountContainer[T comparable](
 // SetContext updates the context to use for the RefCount container resolution.
 // If ctx=nil the RefCount will wait until ctx != nil to start.
 // This also restarts resolution, if there are any refs.
-func (r *RefCount[T]) SetContext(ctx context.Context) {
+// Returns if the context was updated.
+func (r *RefCount[T]) SetContext(ctx context.Context) bool {
+	var updated bool
 	r.mtx.Lock()
 	if r.ctx != ctx {
 		r.ctx = ctx
 		r.startResolveLocked()
+		updated = true
 	}
 	r.mtx.Unlock()
+	return updated
+}
+
+// SetContextIfCanceled updates the context to use for the RefCount container resolution.
+// If the current r.ctx is not nil and not canceled, does nothing.
+// If the passed ctx is nil or canceled, does nothing.
+// This also restarts resolution if there are any refs.
+// Returns if the context was updated.
+func (r *RefCount[T]) SetContextIfCanceled(ctx context.Context) bool {
+	var updated bool
+	r.mtx.Lock()
+	if r.ctx == nil || r.ctx.Err() != nil {
+		if ctx != nil && ctx.Err() == nil {
+			r.ctx = ctx
+			r.startResolveLocked()
+			updated = true
+		}
+	}
+	r.mtx.Unlock()
+	return updated
 }
 
 // ClearContext clears the context and shuts down all routines.
 func (r *RefCount[T]) ClearContext() {
-	r.SetContext(nil)
+	_ = r.SetContext(nil)
 }
 
 // AddRef adds a reference to the RefCount container.
@@ -166,12 +189,7 @@ func (r *RefCount[T]) AddRefPromise() (promise.PromiseLike[T], *Ref[T]) {
 // Returns the value, reference, and any error.
 // If err != nil, value and reference will be nil.
 func (r *RefCount[T]) Wait(ctx context.Context) (T, *Ref[T], error) {
-	prom := promise.NewPromise[T]()
-	ref := r.AddRef(func(resolved bool, val T, err error) {
-		if resolved || err != nil {
-			prom.SetResult(val, err)
-		}
-	})
+	prom, ref := r.AddRefPromise()
 	val, err := prom.Await(ctx)
 	if err != nil {
 		ref.Release()
@@ -222,7 +240,8 @@ func (r *RefCount[T]) WaitWithReleased(ctx context.Context, released func()) (pr
 // The context will be canceled if the value is removed / changed.
 // Return context.Canceled if the context is canceled.
 // The callback may be restarted if the context is canceled and a new value is resolved.
-func (r *RefCount[T]) Access(ctx context.Context, cb func(ctx context.Context, val T) error) error {
+// If useCtx=true and the current context is canceled, updates r to use ctx instead.
+func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx context.Context, val T) error) error {
 	var mtx sync.Mutex
 	var bcast broadcast.Broadcast
 	var currVal T
@@ -246,6 +265,10 @@ func (r *RefCount[T]) Access(ctx context.Context, cb func(ctx context.Context, v
 	var prevCancel context.CancelFunc
 	var prevWait chan struct{}
 	for {
+		if useCtx {
+			r.SetContextIfCanceled(ctx)
+		}
+
 		mtx.Lock()
 		currNonce++
 		mtx.Unlock()
