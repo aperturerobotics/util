@@ -15,7 +15,7 @@ func TestRefCount(t *testing.T) {
 	target := ccontainer.NewCContainer[*string](nil)
 	targetErr := ccontainer.NewCContainer[*error](nil)
 	var valCalled, relCalled atomic.Bool
-	rc := NewRefCount(nil, target, targetErr, func(ctx context.Context, released func()) (*string, func(), error) {
+	rc := NewRefCount(nil, false, target, targetErr, func(ctx context.Context, released func()) (*string, func(), error) {
 		val := "hello world"
 		valCalled.Store(true)
 		return &val, func() {
@@ -69,7 +69,7 @@ func TestRefCount_Released(t *testing.T) {
 	var valCalled, relCalled atomic.Bool
 	ctr := 0
 	var relFunc func()
-	rc := NewRefCount(nil, target, targetErr, func(ctx context.Context, released func()) (*int, func(), error) {
+	rc := NewRefCount(nil, false, target, targetErr, func(ctx context.Context, released func()) (*int, func(), error) {
 		valCalled.Store(true)
 		ctr++
 		val := ctr
@@ -131,7 +131,7 @@ func TestRefCount_Released(t *testing.T) {
 func TestRefCount_WaitWithReleased(t *testing.T) {
 	ctx := context.Background()
 	doCallReleased := make(chan struct{})
-	rc := NewRefCount(nil, nil, nil, func(ctx context.Context, released func()) (*bool, func(), error) {
+	rc := NewRefCount(nil, false, nil, nil, func(ctx context.Context, released func()) (*bool, func(), error) {
 		go func() {
 			<-doCallReleased
 			released()
@@ -168,4 +168,71 @@ func TestRefCount_WaitWithReleased(t *testing.T) {
 		t.Fail()
 	}
 	ref.Release()
+}
+
+// TestRefCount_KeepUnref tests the RefCount keep unreferenced flag.
+func TestRefCount_KeepUnref(t *testing.T) {
+	ctx := context.Background()
+	target := ccontainer.NewCContainer[*int](nil)
+	targetErr := ccontainer.NewCContainer[*error](nil)
+	var valCalled, relCalled atomic.Bool
+	ctr := 0
+	var relFunc func()
+	rc := NewRefCount(nil, true, target, targetErr, func(ctx context.Context, released func()) (*int, func(), error) {
+		valCalled.Store(true)
+		ctr++
+		val := ctr
+		relFunc = released
+		return &val, func() {
+			relCalled.Store(true)
+		}, nil
+	})
+
+	ref := rc.AddRef(nil)
+	<-time.After(time.Millisecond * 50)
+	if valCalled.Load() || relCalled.Load() {
+		t.Fail()
+	}
+
+	rc.SetContext(ctx)
+	<-time.After(time.Millisecond * 50)
+	if !valCalled.Load() || relCalled.Load() {
+		t.Fail()
+	}
+
+	ref.Release()
+	<-time.After(time.Millisecond * 50)
+	if relCalled.Load() {
+		t.Fail()
+	}
+
+	valCalled.Store(false)
+	prom, ref := rc.AddRefPromise()
+	<-time.After(time.Millisecond * 50)
+	if valCalled.Load() || relCalled.Load() {
+		t.Fail()
+	}
+	val, err := prom.Await(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if *val != 1 {
+		t.Fail()
+	}
+
+	relFunc()
+	<-time.After(time.Millisecond * 50)
+	if !relCalled.Load() {
+		t.Fail()
+	}
+	ref.Release()
+	<-time.After(time.Millisecond * 50)
+	prom, ref = rc.AddRefPromise()
+	val, err = prom.Await(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if *val != 2 {
+		t.Fail()
+	}
 }

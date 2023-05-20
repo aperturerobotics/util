@@ -17,6 +17,8 @@ type RefCount[T comparable] struct {
 	// ctx contains the root context
 	// can be nil
 	ctx context.Context
+	// keepUnref sets if the value should be kept if there are zero references.
+	keepUnref bool
 	// target is the target ccontainer
 	target *ccontainer.CContainer[T]
 	// targetErr is the destination for resolution errors
@@ -73,17 +75,20 @@ func (k *Ref[T]) Release() {
 //
 // ctx, target and targetErr can be empty
 //
+// keepUnref sets if the value should be kept if there are zero references.
 // resolver is the resolver function
 // returns the value and a release function
 // call the released callback if the value is no longer valid.
 func NewRefCount[T comparable](
 	ctx context.Context,
+	keepUnref bool,
 	target *ccontainer.CContainer[T],
 	targetErr *ccontainer.CContainer[*error],
 	resolver func(ctx context.Context, released func()) (T, func(), error),
 ) *RefCount[T] {
 	return &RefCount[T]{
 		ctx:       ctx,
+		keepUnref: keepUnref,
 		target:    target,
 		targetErr: targetErr,
 		resolver:  resolver,
@@ -161,12 +166,10 @@ func (r *RefCount[T]) AddRef(cb func(resolved bool, val T, err error)) *Ref[T] {
 	r.mtx.Lock()
 	nref := &Ref[T]{rc: r, cb: cb}
 	r.refs[nref] = struct{}{}
-	if len(r.refs) == 1 {
+	if len(r.refs) == 1 && !r.resolved {
 		r.startResolveLocked()
-	} else {
-		if r.resolved {
-			nref.cb(true, r.value, r.valueErr)
-		}
+	} else if r.resolved {
+		nref.cb(true, r.value, r.valueErr)
 	}
 	r.mtx.Unlock()
 	return nref
@@ -331,7 +334,9 @@ func (r *RefCount[T]) removeRef(ref *Ref[T]) {
 	delete(r.refs, ref)
 	lenAfter := len(r.refs)
 	if lenAfter < lenBefore && lenAfter == 0 {
-		r.shutdown()
+		if !r.keepUnref || !r.resolved || r.valueErr != nil {
+			r.shutdown()
+		}
 	}
 	r.mtx.Unlock()
 }
