@@ -235,4 +235,5 @@ func TestRefCount_KeepUnref(t *testing.T) {
 	if *val != 2 {
 		t.Fail()
 	}
+	ref.Release()
 }
