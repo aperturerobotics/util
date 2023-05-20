@@ -40,6 +40,7 @@ func (c *CContainer[T]) SetValue(val T) {
 // SwapValue locks the container, calls the callback, and stores the return value.
 //
 // Returns the updated value.
+// If cb is nil returns the current value without changes.
 func (c *CContainer[T]) SwapValue(cb func(val T) T) T {
 	c.mtx.Lock()
 	val := c.val

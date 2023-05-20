@@ -50,21 +50,23 @@ func NewRoutineContainerWithLogger(le *logrus.Entry, opts ...Option) *RoutineCon
 // WaitExited waits for the routine to exit and returns the error if any.
 // Note: Will NOT return after the routine is restarted normally.
 // If returnIfNotRunning is set, returns nil if no routine is running.
+// If returnIfNotRunning is not set, waits until a routine has started & exited.
 // errCh is an optional error channel (can be nil)
 func (k *RoutineContainer) WaitExited(ctx context.Context, returnIfNotRunning bool, errCh <-chan error) error {
 	for {
 		k.mtx.Lock()
 		var exited bool
 		var exitedErr error
-		if k.routine != nil {
+		if k.ctx != nil && k.ctx.Err() != nil {
+			k.ctx = nil
+		}
+		if k.routine != nil && k.ctx != nil {
 			exited = k.routine.exited || k.routine.success
 			if exited {
 				exitedErr = k.routine.err
 			}
-		} else {
-			if returnIfNotRunning {
-				exited = true
-			}
+		} else if returnIfNotRunning {
+			exited = true
 		}
 		waitCh := k.bcast.GetWaitCh()
 		k.mtx.Unlock()
@@ -124,34 +126,36 @@ func (k *RoutineContainer) ClearContext() bool {
 	return k.SetContext(nil, false)
 }
 
+// getRunningLocked returns if the routine is running.
+func (k *RoutineContainer) getRunningLocked() bool {
+	return k.ctx != nil && k.ctx.Err() == nil && k.routine != nil && !k.routine.exited
+}
+
 // SetRoutine sets the routine to execute, resetting the existing, if set.
 // If the specified routine is nil, shuts down the current routine.
-// If routine = nil, waits to return until the existing routine fully shuts down.
-// Otherwise, returns right away without blocking.
 // Returns if the current routine was stopped or overwritten.
-func (k *RoutineContainer) SetRoutine(routine Routine) bool {
-	var waitReturn <-chan struct{}
-	defer func() {
-		if waitReturn != nil {
-			<-waitReturn
-		}
-	}()
-
+// Returns a channel which will be closed when the previous routine exits.
+// The waitReturn channel will be nil if there was no previous routine (reset=false).
+func (k *RoutineContainer) SetRoutine(routine Routine) (waitReturn <-chan struct{}, reset bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
-	if k.ctx != nil {
-		select {
-		case <-k.ctx.Done():
-			k.ctx = nil
-		default:
-		}
+	return k.setRoutineLocked(routine)
+}
+
+// setRoutineLocked updates the Routine while mtx is locked.
+// Returns if the current routine was stopped or overwritten.
+// Returns a channel to wait for in order to wait for the previous routine to exit.
+func (k *RoutineContainer) setRoutineLocked(routine Routine) (<-chan struct{}, bool) {
+	if k.ctx != nil && k.ctx.Err() != nil {
+		k.ctx = nil
 	}
 
 	var prevExitedCh <-chan struct{}
 	prevRoutine := k.routine
-	wasReset := prevRoutine != nil
-	if wasReset {
+	var wasReset bool
+	if prevRoutine != nil {
+		wasReset = k.ctx != nil && prevRoutine != nil && !prevRoutine.exited
 		prevExitedCh = prevRoutine.exitedCh
 		if prevRoutine.ctxCancel != nil {
 			prevRoutine.ctxCancel()
@@ -159,20 +163,17 @@ func (k *RoutineContainer) SetRoutine(routine Routine) bool {
 		}
 		k.routine = nil
 	}
-
 	k.bcast.Broadcast()
-	if routine == nil {
-		return wasReset
+
+	if routine != nil {
+		r := newRunningRoutine(k, routine)
+		k.routine = r
+		if k.ctx != nil {
+			k.routine.start(k.ctx, prevExitedCh, false)
+		}
 	}
 
-	r := newRunningRoutine(k, routine)
-	k.routine = r
-	if k.ctx != nil {
-		k.routine.start(k.ctx, prevExitedCh, false)
-	} else {
-		waitReturn = prevExitedCh
-	}
-	return wasReset
+	return prevExitedCh, wasReset
 }
 
 // RestartRoutine restarts the existing routine (if set).
@@ -187,12 +188,8 @@ func (k *RoutineContainer) RestartRoutine() bool {
 
 // restartRoutineLocked restarts the running routine (if set) while locked.
 func (k *RoutineContainer) restartRoutineLocked(onlyIfExited bool) bool {
-	if k.ctx != nil {
-		select {
-		case <-k.ctx.Done():
-			k.ctx = nil
-		default:
-		}
+	if k.ctx != nil && k.ctx.Err() != nil {
+		k.ctx = nil
 	}
 
 	r := k.routine

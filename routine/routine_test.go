@@ -19,9 +19,17 @@ func TestRoutineContainer(t *testing.T) {
 	le := logrus.NewEntry(log)
 	vals := make(chan struct{})
 	var exitWithErr atomic.Pointer[error]
+	var waitReturn chan struct{}
 	routineFn := func(ctx context.Context) error {
 		if errPtr := exitWithErr.Load(); errPtr != nil {
 			return *errPtr
+		}
+		if waitReturn != nil {
+			select {
+			case <-ctx.Done():
+				return context.Canceled
+			case <-waitReturn:
+			}
 		}
 		select {
 		case <-ctx.Done():
@@ -32,9 +40,9 @@ func TestRoutineContainer(t *testing.T) {
 	}
 
 	k := NewRoutineContainerWithLogger(le)
-	if wasReset := k.SetRoutine(routineFn); wasReset {
+	if _, wasReset := k.SetRoutine(routineFn); wasReset {
 		// expected !wasReset before context is set
-		t.Fail()
+		t.FailNow()
 	}
 
 	// expect nothing to happen: context is unset.
@@ -47,7 +55,7 @@ func TestRoutineContainer(t *testing.T) {
 
 	if !k.SetContext(ctx, true) {
 		// expected to start with this call
-		t.Fail()
+		t.FailNow()
 	}
 
 	// expect value to be pushed to vals
@@ -55,21 +63,21 @@ func TestRoutineContainer(t *testing.T) {
 	select {
 	case <-vals:
 	default:
-		t.Fail()
+		t.FailNow()
 	}
 
 	// expect no extra value after
 	<-time.After(time.Millisecond * 50)
 	select {
 	case <-vals:
-		t.Fail()
+		t.FailNow()
 	default:
 	}
 
 	// restart the routine
 	if !k.RestartRoutine() {
 		// expect it to be restarted
-		t.Fail()
+		t.FailNow()
 	}
 
 	// expect value to be pushed to vals
@@ -77,25 +85,26 @@ func TestRoutineContainer(t *testing.T) {
 	select {
 	case <-vals:
 	default:
-		t.Fail()
+		t.FailNow()
 	}
 
 	// unset context
 	if !k.SetContext(nil, false) {
 		// expect shutdown
-		t.Fail()
+		t.FailNow()
 	}
 
 	// expect nothing happened (no difference)
 	if k.SetContext(nil, false) {
-		t.Fail()
+		t.FailNow()
 	}
 
 	// test wait exited
 	var waitExitedReturned atomic.Pointer[error]
 	startWaitExited := func() {
+		waitExitedReturned.Store(nil)
 		go func() {
-			err := k.WaitExited(ctx, true, nil)
+			err := k.WaitExited(ctx, false, nil)
 			waitExitedReturned.Store(&err)
 		}()
 	}
@@ -103,66 +112,67 @@ func TestRoutineContainer(t *testing.T) {
 
 	<-time.After(time.Millisecond * 50)
 	if waitExitedReturned.Load() != nil {
-		t.Fail()
+		t.FailNow()
 	}
 
 	// set context
 	if !k.SetContext(ctx, true) {
-		t.Fail()
+		t.FailNow()
 	}
 
 	// expect value to be pushed to vals
 	<-time.After(time.Millisecond * 50)
 	if waitExitedReturned.Load() != nil {
-		t.Fail()
+		t.FailNow()
 	}
 	select {
 	case <-vals:
 	default:
-		t.Fail()
+		t.FailNow()
+	}
+	<-time.After(time.Millisecond * 50)
+	if waitExitedReturned.Load() == nil {
+		t.FailNow()
 	}
 
-	// set routine again
-	if !k.SetRoutine(routineFn) {
-		t.Fail()
+	// set routine again.
+	// expect !wasReset since the routine already exited.
+	waitReturn = make(chan struct{})
+	if _, wasReset := k.SetRoutine(routineFn); wasReset {
+		t.FailNow()
+	}
+	<-time.After(time.Millisecond * 50)
+
+	// set routine again, expect reset since waitReturn was set (routine is running)
+	startWaitExited()
+	if _, wasReset := k.SetRoutine(routineFn); !wasReset {
+		t.FailNow()
 	}
 
 	// expect value to be pushed to vals
+	close(waitReturn)
 	<-time.After(time.Millisecond * 50)
 	if waitExitedReturned.Load() != nil {
-		t.Fail()
+		t.FailNow()
 	}
 	select {
 	case <-vals:
 	default:
-		t.Fail()
+		t.FailNow()
 	}
 
 	// this time, tell the routine to fail
 	expectedErr := errors.New("expected error for testing")
 	exitWithErr.Store(&expectedErr)
+	startWaitExited()
 	k.RestartRoutine()
 
 	<-time.After(time.Millisecond * 50)
 	errPtr := waitExitedReturned.Load()
 	if errPtr == nil {
-		t.Fail()
+		t.FailNow()
 	} else if (*errPtr) != expectedErr {
-		t.Fail()
-	}
-
-	exitWithErr.Store(nil)
-	waitExitedReturned.Store(nil)
-	startWaitExited()
-
-	k.RestartRoutine()
-	k.SetRoutine(nil)
-	<-time.After(time.Millisecond * 50)
-	errPtr = waitExitedReturned.Load()
-	if errPtr == nil {
-		t.Fail()
-	} else if (*errPtr) != nil {
-		t.Fail()
+		t.FailNow()
 	}
 }
 
@@ -191,15 +201,15 @@ func TestRoutineContainer_WaitExited(t *testing.T) {
 	}()
 	<-time.After(time.Millisecond * 500)
 	if waitExitedReturned.Load() {
-		t.Fail()
+		t.FailNow()
 	}
-	if wasReset := k.SetRoutine(routineFn); wasReset {
+	if _, wasReset := k.SetRoutine(routineFn); wasReset {
 		// expected !wasReset before context is set
-		t.Fail()
+		t.FailNow()
 	}
 	if !k.SetContext(ctx, true) {
 		// expected to start with this call
-		t.Fail()
+		t.FailNow()
 	}
 
 	// expect value to be pushed to vals
@@ -207,10 +217,10 @@ func TestRoutineContainer_WaitExited(t *testing.T) {
 	select {
 	case <-vals:
 	default:
-		t.Fail()
+		t.FailNow()
 	}
 	if !waitExitedReturned.Load() {
-		t.Fail()
+		t.FailNow()
 	}
 }
 
@@ -244,13 +254,13 @@ func TestRoutineContainer_WithBackoff(t *testing.T) {
 		},
 	}).Construct()
 	k := NewRoutineContainer(WithBackoff(bo, le))
-	if wasReset := k.SetRoutine(routineFn); wasReset {
+	if _, wasReset := k.SetRoutine(routineFn); wasReset {
 		// expected !wasReset before context is set
-		t.Fail()
+		t.FailNow()
 	}
 	if !k.SetContext(ctx, true) {
 		// expected to start with this call
-		t.Fail()
+		t.FailNow()
 	}
 
 	// expect backoffs to occur
