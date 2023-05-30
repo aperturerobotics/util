@@ -3,6 +3,7 @@ package keyed
 import (
 	"time"
 
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,6 +36,15 @@ func WithReleaseDelay[K comparable, V any](delay time.Duration) Option[K, V] {
 	}
 	return newOption(func(k *Keyed[K, V]) {
 		k.releaseDelay = delay
+	})
+}
+
+// WithRetry adds a retry after a routine exits with an error.
+//
+// If the backoff config is nil, disables retry.
+func WithRetry[K comparable, V any](bo *backoff.Backoff) Option[K, V] {
+	return newOption(func(k *Keyed[K, V]) {
+		k.backoffConf = bo
 	})
 }
 

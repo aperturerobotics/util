@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,6 +26,9 @@ type Keyed[K comparable, V any] struct {
 
 	// releaseDelay is a delay before stopping a routine.
 	releaseDelay time.Duration
+	// backoffConf is the backoff configuration.
+	// if nil, backoff is disabled
+	backoffConf *backoff.Backoff
 
 	// mtx guards below fields
 	mtx sync.Mutex
@@ -151,12 +155,19 @@ func (k *Keyed[K, V]) SetKey(key K, start bool) (V, bool) {
 	v, existed := k.routines[key]
 	if !existed {
 		routine, data := k.ctorCb(key)
-		v = newRunningRoutine(k, key, routine, data)
+		v = newRunningRoutine(k, key, routine, data, k.backoffConf)
 		k.routines[key] = v
-	} else if v.deferRemove != nil {
-		// cancel removing this key
-		_ = v.deferRemove.Stop()
-		v.deferRemove = nil
+	} else {
+		if v.deferRemove != nil {
+			// cancel removing this key
+			_ = v.deferRemove.Stop()
+			v.deferRemove = nil
+		}
+		if v.deferRetry != nil {
+			// cancel retrying this key
+			_ = v.deferRetry.Stop()
+			v.deferRetry = nil
+		}
 	}
 	if !existed || start {
 		if k.ctx != nil {
@@ -202,7 +213,7 @@ func (k *Keyed[K, V]) SyncKeys(keys []K, restart bool) {
 		v, existed := k.routines[key]
 		if !existed {
 			routine, data := k.ctorCb(key)
-			v = newRunningRoutine(k, key, routine, data)
+			v = newRunningRoutine(k, key, routine, data, k.backoffConf)
 			k.routines[key] = v
 		}
 		routines[key] = v
@@ -273,7 +284,7 @@ func (k *Keyed[K, V]) ResetRoutine(key K, conds ...func(V) bool) (existed bool, 
 	}
 	prevExitedCh := v.exitedCh
 	routine, data := k.ctorCb(key)
-	v = newRunningRoutine(k, key, routine, data)
+	v = newRunningRoutine(k, key, routine, data, k.backoffConf)
 	k.routines[key] = v
 	if k.ctx != nil {
 		v.start(k.ctx, prevExitedCh, false)

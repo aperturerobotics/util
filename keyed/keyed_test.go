@@ -2,11 +2,13 @@ package keyed
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/sirupsen/logrus"
 )
 
@@ -124,5 +126,54 @@ func TestKeyed_WithDelay(t *testing.T) {
 	<-time.After(time.Millisecond * 200)
 	if !called.Load() || canceled.Load() {
 		t.Fail()
+	}
+}
+
+// TestKeyedWithRetry tests the keyed goroutine manager.
+func TestKeyedWithRetry(t *testing.T) {
+	ctx := context.Background()
+	vals := make(chan string, 10)
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+	i := 5
+	k := NewKeyed(
+		func(key string) (Routine, *testData) {
+			return func(ctx context.Context) error {
+				if i == 0 {
+					select {
+					case <-ctx.Done():
+						return context.Canceled
+					case vals <- key:
+						return nil
+					}
+				}
+				i--
+				return errors.New("returning error to test retry")
+			}, &testData{}
+		},
+		WithExitLogger[string, *testData](le),
+		WithRetry[string, *testData](&backoff.Backoff{
+			BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+			Exponential: &backoff.Exponential{
+				InitialInterval:     200,
+				MaxInterval:         1000,
+				RandomizationFactor: 0,
+			},
+		}),
+	)
+
+	k.SetContext(ctx, true)
+	_, existed := k.SetKey("test-key", true)
+	if existed {
+		t.FailNow()
+	}
+
+	val := <-vals
+	if val != "test-key" {
+		t.FailNow()
+	}
+	if i != 0 {
+		t.FailNow()
 	}
 }

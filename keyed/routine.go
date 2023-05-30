@@ -3,6 +3,9 @@ package keyed
 import (
 	"context"
 	"time"
+
+	"github.com/aperturerobotics/util/backoff"
+	cbackoff "github.com/cenkalti/backoff"
 )
 
 // runningRoutine tracks a running routine
@@ -31,17 +34,34 @@ type runningRoutine[K comparable, V any] struct {
 	success bool
 	// exited indicates the routine exited
 	exited bool
+
 	// deferRemove is set if we are waiting to remove this.
 	deferRemove *time.Timer
+
+	// retryBo is the retry backoff if retrying is enabled.
+	retryBo cbackoff.BackOff
+	// deferRetry is set if we are waiting to retry this.
+	deferRetry *time.Timer
 }
 
 // newRunningRoutine constructs a new runningRoutine
-func newRunningRoutine[K comparable, V any](k *Keyed[K, V], key K, routine Routine, data V) *runningRoutine[K, V] {
+func newRunningRoutine[K comparable, V any](
+	k *Keyed[K, V],
+	key K,
+	routine Routine,
+	data V,
+	backoffConf *backoff.Backoff,
+) *runningRoutine[K, V] {
+	var backoff cbackoff.BackOff
+	if backoffConf != nil {
+		backoff = backoffConf.Construct()
+	}
 	return &runningRoutine[K, V]{
 		k:       k,
 		key:     key,
 		routine: routine,
 		data:    data,
+		retryBo: backoff,
 	}
 }
 
@@ -106,6 +126,26 @@ func (r *runningRoutine[K, V]) execute(
 		r.success = err == nil
 		r.exited = true
 		r.exitedCh = nil
+		if r.retryBo != nil {
+			if r.deferRetry != nil {
+				r.deferRetry.Stop()
+				r.deferRetry = nil
+			}
+			if r.success {
+				r.retryBo.Reset()
+			} else if r.k.routines[r.key] == r {
+				dur := r.retryBo.NextBackOff()
+				if dur != backoff.Stop {
+					r.deferRetry = time.AfterFunc(dur, func() {
+						r.k.mtx.Lock()
+						if r.k.ctx != nil && r.k.routines[r.key] == r && r.exited {
+							r.start(r.k.ctx, r.exitedCh, true)
+						}
+						r.k.mtx.Unlock()
+					})
+				}
+			}
+		}
 		for i := len(r.k.exitedCbs) - 1; i >= 0; i-- {
 			// run after unlocking mtx
 			defer (r.k.exitedCbs[i])(r.key, r.routine, r.data, r.err)
@@ -123,6 +163,11 @@ func (r *runningRoutine[K, V]) remove() {
 	removeNow := func() {
 		if r.ctxCancel != nil {
 			r.ctxCancel()
+		}
+		if r.deferRetry != nil {
+			// cancel retrying this key
+			_ = r.deferRetry.Stop()
+			r.deferRetry = nil
 		}
 		delete(r.k.routines, r.key)
 	}
