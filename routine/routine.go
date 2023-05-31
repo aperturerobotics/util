@@ -3,8 +3,11 @@ package routine
 import (
 	"context"
 	"sync"
+	"time"
 
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/broadcast"
+	cbackoff "github.com/cenkalti/backoff"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,6 +28,8 @@ type RoutineContainer struct {
 	routine *runningRoutine
 	// bcast is broadcasted when the routine changes
 	bcast broadcast.Broadcast
+	// retryBo is the retry backoff if retrying is enabled.
+	retryBo cbackoff.BackOff
 }
 
 // NewRoutineContainer constructs a new RoutineContainer.
@@ -105,16 +110,14 @@ func (k *RoutineContainer) SetContext(ctx context.Context, restart bool) bool {
 	if rr == nil || (sameCtx && rr.err == nil) {
 		return false
 	}
-	rr.ctx = nil
-	if rr.ctxCancel != nil {
-		rr.ctxCancel()
-		rr.ctxCancel = nil
-	}
+
+	rr.stop()
 	if rr.err == nil || restart {
 		if ctx != nil {
 			rr.start(ctx, rr.exitedCh, false)
 		}
 	}
+
 	k.bcast.Broadcast()
 	return true
 }
@@ -237,10 +240,16 @@ type runningRoutine struct {
 	success bool
 	// exited indicates the routine exited
 	exited bool
+
+	// deferRetry is set if we are waiting to retry this.
+	deferRetry *time.Timer
 }
 
 // newRunningRoutine constructs a new runningRoutine
-func newRunningRoutine(r *RoutineContainer, routine Routine) *runningRoutine {
+func newRunningRoutine(
+	r *RoutineContainer,
+	routine Routine,
+) *runningRoutine {
 	return &runningRoutine{
 		r:       r,
 		routine: routine,
@@ -255,17 +264,11 @@ func (r *runningRoutine) start(ctx context.Context, waitCh <-chan struct{}, forc
 	if (!forceRestart && r.success) || r.routine == nil {
 		return
 	}
-	if !forceRestart && r.ctx != nil && !r.exited {
-		select {
-		case <-r.ctx.Done():
-		default:
-			// routine is still running
-			return
-		}
+	if !forceRestart && r.ctx != nil && !r.exited && r.ctx.Err() == nil {
+		// routine is still running
+		return
 	}
-	if r.ctxCancel != nil {
-		r.ctxCancel()
-	}
+	r.stop()
 	exitedCh := make(chan struct{})
 	r.err = nil
 	r.success, r.exited = false, false
@@ -308,6 +311,26 @@ func (r *runningRoutine) execute(
 		r.success = err == nil
 		r.exited = true
 		r.exitedCh = nil
+		if r.r.retryBo != nil {
+			if r.deferRetry != nil {
+				r.deferRetry.Stop()
+				r.deferRetry = nil
+			}
+			if r.success {
+				r.r.retryBo.Reset()
+			} else if r.r.routine == r {
+				dur := r.r.retryBo.NextBackOff()
+				if dur != backoff.Stop {
+					r.deferRetry = time.AfterFunc(dur, func() {
+						r.r.mtx.Lock()
+						if r.r.ctx != nil && r.r.routine == r && r.exited {
+							r.start(r.r.ctx, r.exitedCh, true)
+						}
+						r.r.mtx.Unlock()
+					})
+				}
+			}
+		}
 		for i := len(r.r.exitedCbs) - 1; i >= 0; i-- {
 			// run after unlocking mtx
 			defer (r.r.exitedCbs[i])(r.err)
@@ -315,4 +338,18 @@ func (r *runningRoutine) execute(
 		r.r.bcast.Broadcast()
 	}
 	r.r.mtx.Unlock()
+}
+
+// stop is called when the routine is removed / canceled.
+// expects r.r.mtx to be locked
+func (r *runningRoutine) stop() {
+	r.ctx = nil
+	if r.ctxCancel != nil {
+		r.ctxCancel()
+		r.ctxCancel = nil
+	}
+	if r.deferRetry != nil {
+		_ = r.deferRetry.Stop()
+		r.deferRetry = nil
+	}
 }

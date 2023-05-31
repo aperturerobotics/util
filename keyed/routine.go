@@ -73,13 +73,14 @@ func (r *runningRoutine[K, V]) start(ctx context.Context, waitCh <-chan struct{}
 	if (!forceRestart && r.success) || r.routine == nil {
 		return
 	}
-	if !forceRestart && r.ctx != nil && !r.exited {
-		select {
-		case <-r.ctx.Done():
-		default:
-			// routine is still running
-			return
-		}
+	if !forceRestart && r.ctx != nil && !r.exited && r.ctx.Err() == nil {
+		// routine is still running
+		return
+	}
+	if r.deferRetry != nil {
+		// cancel retrying this key
+		_ = r.deferRetry.Stop()
+		r.deferRetry = nil
 	}
 	if r.ctxCancel != nil {
 		r.ctxCancel()
@@ -106,12 +107,8 @@ func (r *runningRoutine[K, V]) execute(
 			err = context.Canceled
 		case <-waitCh:
 		}
-	} else {
-		select {
-		case <-ctx.Done():
-			err = context.Canceled
-		default:
-		}
+	} else if err = ctx.Err(); err != nil {
+		err = context.Canceled
 	}
 
 	if err == nil {

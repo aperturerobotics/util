@@ -229,7 +229,6 @@ func TestRoutineContainer_WithBackoff(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
 
 	vals := make(chan struct{}, 1)
 	retErrs := 5
@@ -253,7 +252,7 @@ func TestRoutineContainer_WithBackoff(t *testing.T) {
 			MaxInterval:     500,
 		},
 	}).Construct()
-	k := NewRoutineContainer(WithBackoff(bo, le))
+	k := NewRoutineContainer(WithBackoff(bo))
 	if _, wasReset := k.SetRoutine(routineFn); wasReset {
 		// expected !wasReset before context is set
 		t.FailNow()
