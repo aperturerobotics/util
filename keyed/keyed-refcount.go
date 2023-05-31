@@ -28,6 +28,9 @@ type KeyedRef[K comparable, V any] struct {
 
 // Release releases the reference.
 func (k *KeyedRef[K, V]) Release() {
+	if k == nil {
+		return
+	}
 	if k.rel.Swap(true) {
 		return
 	}
