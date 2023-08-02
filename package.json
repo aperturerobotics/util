@@ -42,14 +42,14 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "0.6.2",
+    "@aperturerobotics/ts-common": "0.6.3",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "depcheck": "^1.4.3",
     "esbuild": "^0.18.12",
     "eslint": "^8.44.0",
     "eslint-config-prettier": "^8.7.0",
-    "patch-package": "^7.0.2",
+    "patch-package": "^8.0.0",
     "prettier": "^3.0.0",
     "ts-proto": "^1.153.2",
     "typescript": "^5.1.6"

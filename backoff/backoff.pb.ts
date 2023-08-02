@@ -199,17 +199,21 @@ export const Backoff = {
 
   toJSON(message: Backoff): unknown {
     const obj: any = {};
-    message.backoffKind !== undefined && (obj.backoffKind = backoffKindToJSON(message.backoffKind));
-    message.exponential !== undefined &&
-      (obj.exponential = message.exponential ? Exponential.toJSON(message.exponential) : undefined);
-    message.constant !== undefined && (obj.constant = message.constant ? Constant.toJSON(message.constant) : undefined);
+    if (message.backoffKind !== 0) {
+      obj.backoffKind = backoffKindToJSON(message.backoffKind);
+    }
+    if (message.exponential !== undefined) {
+      obj.exponential = Exponential.toJSON(message.exponential);
+    }
+    if (message.constant !== undefined) {
+      obj.constant = Constant.toJSON(message.constant);
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<Backoff>, I>>(base?: I): Backoff {
-    return Backoff.fromPartial(base ?? {});
+    return Backoff.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Backoff>, I>>(object: I): Backoff {
     const message = createBaseBackoff();
     message.backoffKind = object.backoffKind ?? 0;
@@ -342,18 +346,27 @@ export const Exponential = {
 
   toJSON(message: Exponential): unknown {
     const obj: any = {};
-    message.initialInterval !== undefined && (obj.initialInterval = Math.round(message.initialInterval));
-    message.multiplier !== undefined && (obj.multiplier = message.multiplier);
-    message.maxInterval !== undefined && (obj.maxInterval = Math.round(message.maxInterval));
-    message.randomizationFactor !== undefined && (obj.randomizationFactor = message.randomizationFactor);
-    message.maxElapsedTime !== undefined && (obj.maxElapsedTime = Math.round(message.maxElapsedTime));
+    if (message.initialInterval !== 0) {
+      obj.initialInterval = Math.round(message.initialInterval);
+    }
+    if (message.multiplier !== 0) {
+      obj.multiplier = message.multiplier;
+    }
+    if (message.maxInterval !== 0) {
+      obj.maxInterval = Math.round(message.maxInterval);
+    }
+    if (message.randomizationFactor !== 0) {
+      obj.randomizationFactor = message.randomizationFactor;
+    }
+    if (message.maxElapsedTime !== 0) {
+      obj.maxElapsedTime = Math.round(message.maxElapsedTime);
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<Exponential>, I>>(base?: I): Exponential {
-    return Exponential.fromPartial(base ?? {});
+    return Exponential.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Exponential>, I>>(object: I): Exponential {
     const message = createBaseExponential();
     message.initialInterval = object.initialInterval ?? 0;
@@ -438,14 +451,15 @@ export const Constant = {
 
   toJSON(message: Constant): unknown {
     const obj: any = {};
-    message.interval !== undefined && (obj.interval = Math.round(message.interval));
+    if (message.interval !== 0) {
+      obj.interval = Math.round(message.interval);
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<Constant>, I>>(base?: I): Constant {
-    return Constant.fromPartial(base ?? {});
+    return Constant.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Constant>, I>>(object: I): Constant {
     const message = createBaseConstant();
     message.interval = object.interval ?? 0;
