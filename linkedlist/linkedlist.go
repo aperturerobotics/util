@@ -104,6 +104,13 @@ func (l *LinkedList[T]) Pop() (T, bool) {
 	return val, exists
 }
 
+// Reset clears the linked list.
+func (l *LinkedList[T]) Reset() {
+	l.mtx.Lock()
+	l.head, l.tail = nil, nil
+	l.mtx.Unlock()
+}
+
 // pushElem pushes an element to the list while mtx is locked.
 func (l *LinkedList[T]) pushElem(val T) {
 	elem := &linkedListElem[T]{val: val}
