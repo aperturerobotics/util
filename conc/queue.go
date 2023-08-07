@@ -74,7 +74,7 @@ func (s *ConcurrentQueue) WaitIdle(ctx context.Context, errCh <-chan error) erro
 	var wait <-chan struct{}
 	for {
 		s.mtx.Lock()
-		idle := s.running == 0 && s.jobQueue.IsEmpty()
+		idle := s.running == 0 && s.jobQueueSize == 0
 		if !idle {
 			wait = s.bcast.GetWaitCh()
 		}
