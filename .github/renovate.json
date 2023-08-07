@@ -7,10 +7,12 @@
     "workarounds:all"
   ],
   "branchConcurrentLimit": 0,
-  "postUpdateOptions": ["gomodMassage"],
-  "packageRules": [{
-    "matchManagers": ["gomod"],
-    "matchDepTypes": ["replace"],
-    "enabled": false
-  }]
+  "ignorePaths": ["hack"],
+  "packageRules": [
+    {
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["replace"],
+      "enabled": false
+    }
+  ]
 }
