@@ -10,16 +10,17 @@ import (
 )
 
 // adapted from src/sync/rwmutex_test.go in Go
-func parallelReader(t *testing.T, m *RWMutex, clocked, cunlock, cdone chan bool) {
+func parallelReader(m *RWMutex, clocked, cunlock chan bool, cdone chan error) {
 	rel, err := m.Lock(context.Background(), false)
 	if err != nil {
-		t.Fatal(err.Error())
+		cdone <- err
+		return
 	}
 	clocked <- true
 	<-cunlock
 	rel()
 	rel() // call twice to test atomics (concurrency safety)
-	cdone <- true
+	cdone <- nil
 }
 
 func doTestParallelReaders(t *testing.T, numReaders, gomaxprocs int) {
@@ -27,9 +28,9 @@ func doTestParallelReaders(t *testing.T, numReaders, gomaxprocs int) {
 	var m RWMutex
 	clocked := make(chan bool)
 	cunlock := make(chan bool)
-	cdone := make(chan bool)
+	cdone := make(chan error)
 	for i := 0; i < numReaders; i++ {
-		go parallelReader(t, &m, clocked, cunlock, cdone)
+		go parallelReader(&m, clocked, cunlock, cdone)
 	}
 	// Wait for all parallel RLock()s to succeed.
 	for i := 0; i < numReaders; i++ {
@@ -40,7 +41,9 @@ func doTestParallelReaders(t *testing.T, numReaders, gomaxprocs int) {
 	}
 	// Wait for the goroutines to finish.
 	for i := 0; i < numReaders; i++ {
-		<-cdone
+		if err := <-cdone; err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 }
 
@@ -51,11 +54,11 @@ func TestParallelReaders(t *testing.T) {
 	doTestParallelReaders(t, 4, 2)
 }
 
-func reader(t *testing.T, rwm *RWMutex, num_iterations int, activity *int32, cdone chan bool) {
+func reader(rwm *RWMutex, num_iterations int, activity *int32, cdone chan error) {
 	for i := 0; i < num_iterations; i++ {
 		rel, err := rwm.Lock(context.Background(), false)
 		if err != nil {
-			t.Fatal(err.Error())
+			cdone <- err
 		}
 		n := atomic.AddInt32(activity, 1)
 		if n < 1 || n >= 10000 {
@@ -67,14 +70,14 @@ func reader(t *testing.T, rwm *RWMutex, num_iterations int, activity *int32, cdo
 		atomic.AddInt32(activity, -1)
 		rel()
 	}
-	cdone <- true
+	cdone <- nil
 }
 
-func writer(t *testing.T, rwm *RWMutex, num_iterations int, activity *int32, cdone chan bool) {
+func writer(rwm *RWMutex, num_iterations int, activity *int32, cdone chan error) {
 	for i := 0; i < num_iterations; i++ {
 		rel, err := rwm.Lock(context.Background(), true)
 		if err != nil {
-			t.Fatal(err.Error())
+			cdone <- err
 		}
 		n := atomic.AddInt32(activity, 10000)
 		if n != 10000 {
@@ -86,7 +89,7 @@ func writer(t *testing.T, rwm *RWMutex, num_iterations int, activity *int32, cdo
 		atomic.AddInt32(activity, -10000)
 		rel()
 	}
-	cdone <- true
+	cdone <- nil
 }
 
 func HammerRWMutex(t *testing.T, gomaxprocs, numReaders, num_iterations int) {
@@ -94,19 +97,21 @@ func HammerRWMutex(t *testing.T, gomaxprocs, numReaders, num_iterations int) {
 	// Number of active readers + 10000 * number of active writers.
 	var activity int32
 	var rwm RWMutex
-	cdone := make(chan bool)
-	go writer(t, &rwm, num_iterations, &activity, cdone)
+	cdone := make(chan error)
+	go writer(&rwm, num_iterations, &activity, cdone)
 	var i int
 	for i = 0; i < numReaders/2; i++ {
-		go reader(t, &rwm, num_iterations, &activity, cdone)
+		go reader(&rwm, num_iterations, &activity, cdone)
 	}
-	go writer(t, &rwm, num_iterations, &activity, cdone)
+	go writer(&rwm, num_iterations, &activity, cdone)
 	for ; i < numReaders; i++ {
-		go reader(t, &rwm, num_iterations, &activity, cdone)
+		go reader(&rwm, num_iterations, &activity, cdone)
 	}
 	// Wait for the 2 writers and all readers to finish.
 	for i := 0; i < 2+numReaders; i++ {
-		<-cdone
+		if err := <-cdone; err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 }
 
@@ -170,7 +175,7 @@ func TestRWMutex(t *testing.T) {
 func TestRLocker(t *testing.T) {
 	var wl RWMutex
 	var rl sync.Locker
-	wlocked := make(chan bool, 1)
+	wlocked := make(chan error, 1)
 	rlocked := make(chan bool, 1)
 	rl = wl.RLocker()
 	n := 10
@@ -182,10 +187,7 @@ func TestRLocker(t *testing.T) {
 			rlocked <- true
 			var err error
 			rel, err = wl.Lock(context.Background(), true)
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			wlocked <- true
+			wlocked <- err
 		}
 	}()
 	for i := 0; i < n; i++ {
@@ -197,7 +199,9 @@ func TestRLocker(t *testing.T) {
 		default:
 		}
 		rl.Unlock()
-		<-wlocked
+		if err := <-wlocked; err != nil {
+			t.Fatal(err.Error())
+		}
 		select {
 		case <-rlocked:
 			t.Fatal("RLocker() didn't respect the write lock")
