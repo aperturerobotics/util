@@ -15,6 +15,7 @@ Various utilities for Go and TypeScript including:
  - [ccontainer]: concurrent container for objects
  - [commonprefix]: find common prefix between strings
  - [conc]: concurrent processing queue
+ - [csync]: sync primitives supporting context arguments
  - [debounce-fswatcher]: debounce fs watcher events
  - [exec]: wrapper around Go os exec
  - [iocloser]: wrap reader/writer with a close function
