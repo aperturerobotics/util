@@ -14,6 +14,7 @@ Various utilities for Go and TypeScript including:
  - [ccall]: call a set of functions concurrently and wait for error or exit
  - [ccontainer]: concurrent container for objects
  - [commonprefix]: find common prefix between strings
+ - [cqueue]: concurrent atomic queues (LIFO)
  - [conc]: concurrent processing queue
  - [csync]: sync primitives supporting context arguments
  - [debounce-fswatcher]: debounce fs watcher events
@@ -36,6 +37,8 @@ Various utilities for Go and TypeScript including:
 [ccontainer]: ./ccontainer
 [commonprefix]: ./commonprefix
 [conc]: ./conc
+[csync]: ./csync
+[cqueue]: ./cqueue
 [debounce-fswatcher]: ./debounce-fswatcher
 [exec]: ./exec
 [iocloser]: ./iocloser
