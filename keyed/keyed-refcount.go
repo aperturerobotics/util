@@ -87,6 +87,15 @@ func (k *KeyedRefCount[K, V]) SetContext(ctx context.Context, restart bool) {
 	k.keyed.SetContext(ctx, restart)
 }
 
+// SetContextIfCanceled updates the context to use for the keyed container resolution.
+// If the current r.ctx is not nil and not canceled, does nothing.
+// If the passed ctx is nil or canceled, does nothing.
+// if restart is true, all errored routines also restart
+// Returns if the context was updated.
+func (k *KeyedRefCount[K, V]) SetContextIfCanceled(ctx context.Context, restart bool) bool {
+	return k.keyed.SetContextIfCanceled(ctx, restart)
+}
+
 // ClearContext clears the context and shuts down all routines.
 func (k *KeyedRefCount[K, V]) ClearContext() {
 	k.keyed.ClearContext()
