@@ -2,11 +2,6 @@ module github.com/aperturerobotics/util
 
 go 1.19
 
-replace (
-	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.30.1-0.20230428014030-7089409cbc63 // aperture
-)
-
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/fsnotify/fsnotify v1.6.0
@@ -15,4 +10,4 @@ require (
 	google.golang.org/protobuf v1.31.0
 )
 
-require golang.org/x/sys v0.0.0-20220908164124-27713097b956 // indirect
+require golang.org/x/sys v0.12.1-0.20230915184527-c7ff727a8c41 // indirect
