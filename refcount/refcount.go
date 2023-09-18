@@ -406,12 +406,22 @@ func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{},
 	}
 
 	released := func() {
-		r.mtx.Lock()
-		if r.nonce == nonce {
-			// calls shutdown internally
-			r.startResolveLocked()
+		resolveAfterRelease := func(lock bool) {
+			if lock {
+				r.mtx.Lock()
+			}
+			defer r.mtx.Unlock()
+			if r.nonce == nonce {
+				// calls shutdown internally
+				r.startResolveLocked()
+			}
 		}
-		r.mtx.Unlock()
+
+		if r.mtx.TryLock() {
+			resolveAfterRelease(false)
+		} else {
+			go resolveAfterRelease(true)
+		}
 	}
 
 	val, valRel, err := r.resolver(ctx, released)
