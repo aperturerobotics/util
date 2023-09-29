@@ -2,13 +2,14 @@ package padding
 
 import (
 	"bytes"
-	"math/rand"
+	"crypto/rand"
 	"testing"
 )
 
 func TestPadUnpad(t *testing.T) {
 	data := make([]byte, 27)
 	rand.Read(data)
+
 	og := make([]byte, len(data))
 	copy(og, data)
 	padded := PadInPlace(data)
