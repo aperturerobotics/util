@@ -8,7 +8,10 @@ import (
 
 func TestPadUnpad(t *testing.T) {
 	data := make([]byte, 27)
-	rand.Read(data)
+	_, err := rand.Read(data)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	og := make([]byte, len(data))
 	copy(og, data)

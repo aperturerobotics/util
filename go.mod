@@ -10,4 +10,4 @@ require (
 	google.golang.org/protobuf v1.31.0
 )
 
-require golang.org/x/sys v0.12.1-0.20230922162325-aa9470e40da9 // indirect
+require golang.org/x/sys v0.0.0-20220908164124-27713097b956 // indirect
