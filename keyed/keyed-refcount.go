@@ -132,6 +132,24 @@ func (k *KeyedRefCount[K, V]) RestartRoutine(key K, conds ...func(V) bool) (exis
 	return k.keyed.RestartRoutine(key, conds...)
 }
 
+// RemoveKey removes all references to a key deleting it from the set and returning if it existed.
+//
+// Returns if the key existed.
+func (k *KeyedRefCount[K, V]) RemoveKey(key K) bool {
+	k.mtx.Lock()
+	defer k.mtx.Unlock()
+
+	// clear all refs to the key
+	for _, ref := range k.refs[key] {
+		// mark as released
+		ref.rel.Store(true)
+	}
+	delete(k.refs, key)
+
+	// return if the key existed
+	return k.keyed.RemoveKey(key)
+}
+
 // AddKeyRef adds a reference to the given key.
 // Returns if the key already existed or not.
 func (k *KeyedRefCount[K, V]) AddKeyRef(key K) (ref *KeyedRef[K, V], data V, existed bool) {
