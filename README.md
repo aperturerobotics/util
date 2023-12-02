@@ -19,6 +19,7 @@ Various utilities for Go and TypeScript including:
  - [csync]: sync primitives supporting context arguments
  - [debounce-fswatcher]: debounce fs watcher events
  - [exec]: wrapper around Go os exec
+ - [fsutil]: utilities for os filesystem
  - [iocloser]: wrap reader/writer with a close function
  - [iosizer]: read/writer with metrics for size
  - [keyed]: key/value based routine management
@@ -41,6 +42,7 @@ Various utilities for Go and TypeScript including:
 [cqueue]: ./cqueue
 [debounce-fswatcher]: ./debounce-fswatcher
 [exec]: ./exec
+[fsutil]: ./fsutil
 [iocloser]: ./iocloser
 [iosizer]: ./iosizer
 [keyed]: ./keyed
