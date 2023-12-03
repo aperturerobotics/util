@@ -68,6 +68,15 @@ func CopyRecursive(dstDir, src string, cb fs.WalkDirFunc) error {
 			if err := os.MkdirAll(dstPath, 0755); err != nil {
 				return err
 			}
+		} else if info.Type()&fs.ModeSymlink != 0 {
+			dstLink, err := os.Readlink(srcPath)
+			if err != nil {
+				return err
+			}
+
+			if err := os.Symlink(dstLink, dstPath); err != nil {
+				return err
+			}
 		}
 
 		if cb != nil {
