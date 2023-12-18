@@ -168,7 +168,7 @@ func (r *runningRoutine[K, V]) remove() {
 		}
 		delete(r.k.routines, r.key)
 	}
-	if r.k.releaseDelay == 0 {
+	if r.k.releaseDelay == 0 || (r.exited && !r.success) {
 		removeNow()
 		return
 	}
