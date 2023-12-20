@@ -14,10 +14,14 @@ import (
 // DebounceFSWatcherEvents debounces a fswatcher event stream.
 // Waits for a "quiet period" before syncing.
 // Returns when an event happened.
+// If filter is set, events are checked against the filter.
+// If filter returns false, the event will be ignored.
+// If filter returns an err, it will be returned.
 func DebounceFSWatcherEvents(
 	ctx context.Context,
 	watcher *fsnotify.Watcher,
 	debounceDur time.Duration,
+	filter func(event fsnotify.Event) (bool, error),
 ) ([]fsnotify.Event, error) {
 	var happened []fsnotify.Event
 	var nextSyncTicker *time.Timer
@@ -56,6 +60,15 @@ FlushLoop:
 			case fsnotify.Remove:
 			default:
 				continue
+			}
+			if filter != nil {
+				keep, err := filter(event)
+				if err != nil {
+					return happened, err
+				}
+				if !keep {
+					continue
+				}
 			}
 			happened = append(happened, event)
 			if nextSyncTicker != nil {
