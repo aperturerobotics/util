@@ -141,14 +141,11 @@ func TestRefCount_WaitWithReleased(t *testing.T) {
 	})
 
 	var releasedCalled atomic.Bool
-	valProm, ref, err := rc.WaitWithReleased(ctx, func() {
+	valProm, ref := rc.WaitWithReleased(ctx, func() {
 		if releasedCalled.Swap(true) {
 			t.Fatal("released was called multiple times")
 		}
 	})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 	defer ref.Release()
 
 	rc.SetContext(ctx)
@@ -233,6 +230,49 @@ func TestRefCount_KeepUnref(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	if *val != 2 {
+		t.Fail()
+	}
+	ref.Release()
+}
+
+// TestRefCount_ResolveAsRefCount tests using a RefCount.Resolve as the resolver for another RefCount.
+func TestRefCount_ResolveAsRefCount(t *testing.T) {
+	ctx := context.Background()
+	doCallReleased := make(chan struct{})
+	rc := NewRefCount(nil, false, nil, nil, func(ctx context.Context, released func()) (*bool, func(), error) {
+		go func() {
+			<-doCallReleased
+			released()
+		}()
+		ret := true
+		return &ret, func() {}, nil
+	})
+
+	rc2 := NewRefCount(nil, false, nil, nil, rc.ResolveWithReleased)
+
+	var releasedCalled atomic.Bool
+	valProm, ref := rc2.WaitWithReleased(ctx, func() {
+		if releasedCalled.Swap(true) {
+			t.Fatal("released was called multiple times")
+		}
+	})
+	defer ref.Release()
+
+	rc.SetContext(ctx)
+	rc2.SetContext(ctx)
+	val, err := valProm.Await(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if val == nil || *val != true {
+		t.Fail()
+	}
+	if releasedCalled.Load() {
+		t.Fail()
+	}
+	close(doCallReleased)
+	<-time.After(time.Millisecond * 50)
+	if !releasedCalled.Load() {
 		t.Fail()
 	}
 	ref.Release()

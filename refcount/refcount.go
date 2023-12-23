@@ -205,8 +205,7 @@ func (r *RefCount[T]) Wait(ctx context.Context) (T, *Ref[T], error) {
 // Calls the released callback (if set) when the value or reference is released.
 // Note: it's very unlikely, but still possible, that released will be called before the promise resolves.
 // Note: released will always be called from a new goroutine.
-// Note: this matches the signature of the refcount resolver function.
-func (r *RefCount[T]) WaitWithReleased(ctx context.Context, released func()) (promise.PromiseLike[T], *Ref[T], error) {
+func (r *RefCount[T]) WaitWithReleased(ctx context.Context, released func()) (promise.PromiseLike[T], *Ref[T]) {
 	prom := promise.NewPromise[T]()
 	// fields guarded by r.mtx
 	var currResolved bool
@@ -235,7 +234,33 @@ func (r *RefCount[T]) WaitWithReleased(ctx context.Context, released func()) (pr
 			prom.SetResult(val, err)
 		}
 	})
-	return prom, ref, nil
+	return prom, ref
+}
+
+// Resolve adds a reference and waits for a value.
+// Returns the value, release function, and any error.
+// If err != nil, value and reference will be nil.
+func (r *RefCount[T]) Resolve(ctx context.Context) (T, func(), error) {
+	val, ref, err := r.Wait(ctx)
+	if err != nil {
+		return val, nil, err
+	}
+	return val, ref.Release, nil
+}
+
+// ResolveWithReleased adds a reference, waits for a value, returns the value and a release function.
+// Calls the released callback (if set) when the value or reference is released.
+// Note: it's very unlikely, but still possible, that released will be called before the promise resolves.
+// Note: released will always be called from a new goroutine.
+// Note: this matches the signature of the refcount resolver function.
+func (r *RefCount[T]) ResolveWithReleased(ctx context.Context, released func()) (T, func(), error) {
+	prom, ref := r.WaitWithReleased(ctx, released)
+	val, err := prom.Await(ctx)
+	if err != nil {
+		ref.Release()
+		return val, nil, err
+	}
+	return val, ref.Release, nil
 }
 
 // Access adds a reference, waits for a value, and calls the callback.
@@ -245,7 +270,6 @@ func (r *RefCount[T]) WaitWithReleased(ctx context.Context, released func()) (pr
 // The callback may be restarted if the context is canceled and a new value is resolved.
 // If useCtx=true and the current context is canceled, updates r to use ctx instead.
 func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx context.Context, val T) error) error {
-	var mtx sync.Mutex
 	var bcast broadcast.Broadcast
 	var currVal T
 	var currErr error
@@ -254,14 +278,14 @@ func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx conte
 	var currComplete bool
 
 	ref := r.AddRef(func(nowResolved bool, nowVal T, nowErr error) {
-		mtx.Lock()
-		if nowResolved != currResolved || nowVal != currVal || nowErr != currErr {
-			currVal = nowVal
-			currErr = nowErr
-			currResolved = nowResolved
-			bcast.Broadcast()
-		}
-		mtx.Unlock()
+		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			if nowResolved != currResolved || nowVal != currVal || nowErr != currErr {
+				currVal = nowVal
+				currErr = nowErr
+				currResolved = nowResolved
+				broadcast()
+			}
+		})
 	})
 	defer ref.Release()
 
@@ -272,9 +296,10 @@ func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx conte
 			r.SetContextIfCanceled(ctx)
 		}
 
-		mtx.Lock()
-		currNonce++
-		mtx.Unlock()
+		// mark the nonce has increased to ensure we release the correct value
+		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			currNonce++
+		})
 		if prevCancel != nil {
 			prevCancel()
 			prevCancel = nil
@@ -288,10 +313,16 @@ func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx conte
 			}
 		}
 
-		mtx.Lock()
-		val, err, resolved, nonce, complete := currVal, currErr, currResolved, currNonce, currComplete
-		bcastCh := bcast.GetWaitCh()
-		mtx.Unlock()
+		var val T
+		var err error
+		var resolved bool
+		var nonce uint32
+		var complete bool
+		var waitCh <-chan struct{}
+		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			val, err, resolved, nonce, complete = currVal, currErr, currResolved, currNonce, currComplete
+			waitCh = getWaitCh()
+		})
 		if err != nil || complete {
 			return err
 		}
@@ -303,16 +334,16 @@ func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx conte
 			go func(cbCtx context.Context, doneCh chan struct{}, nonce uint32, val T) {
 				defer close(doneCh)
 				cbErr := cb(cbCtx, val)
-				mtx.Lock()
-				if currNonce == nonce {
-					if currErr == nil {
-						currErr = cbErr
+				bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+					if currNonce == nonce {
+						if currErr == nil {
+							currErr = cbErr
+						}
+						currComplete = currErr == nil
+						currResolved = false
+						broadcast()
 					}
-					currComplete = currErr == nil
-					currResolved = false
-					bcast.Broadcast()
-				}
-				mtx.Unlock()
+				})
 			}(cbCtx, prevWait, nonce, val)
 		}
 
@@ -322,7 +353,7 @@ func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx conte
 				prevCancel()
 			}
 			return context.Canceled
-		case <-bcastCh:
+		case <-waitCh:
 		}
 	}
 }
