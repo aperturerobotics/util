@@ -2,16 +2,14 @@ package ccontainer
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 )
 
 // CContainer is a concurrent container.
 type CContainer[T comparable] struct {
-	mtx   sync.Mutex
-	val   T
 	bcast broadcast.Broadcast
+	val   T
 }
 
 // NewCContainer builds a CContainer with an initial value.
@@ -21,20 +19,21 @@ func NewCContainer[T comparable](val T) *CContainer[T] {
 
 // GetValue returns the immediate value of the container.
 func (c *CContainer[T]) GetValue() T {
-	c.mtx.Lock()
-	val := c.val
-	c.mtx.Unlock()
+	var val T
+	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		val = c.val
+	})
 	return val
 }
 
 // SetValue sets the ccontainer value.
 func (c *CContainer[T]) SetValue(val T) {
-	c.mtx.Lock()
-	if c.val != val {
-		c.val = val
-		c.bcast.Broadcast()
-	}
-	c.mtx.Unlock()
+	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if c.val != val {
+			c.val = val
+			broadcast()
+		}
+	})
 }
 
 // SwapValue locks the container, calls the callback, and stores the return value.
@@ -42,16 +41,17 @@ func (c *CContainer[T]) SetValue(val T) {
 // Returns the updated value.
 // If cb is nil returns the current value without changes.
 func (c *CContainer[T]) SwapValue(cb func(val T) T) T {
-	c.mtx.Lock()
-	val := c.val
-	if cb != nil {
-		val = cb(val)
-		if val != c.val {
-			c.val = val
-			c.bcast.Broadcast()
+	var val T
+	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		val = c.val
+		if cb != nil {
+			val = cb(val)
+			if val != c.val {
+				c.val = val
+				broadcast()
+			}
 		}
-	}
-	c.mtx.Unlock()
+	})
 	return val
 }
 
@@ -66,9 +66,12 @@ func (c *CContainer[T]) WaitValueWithValidator(
 	var err error
 	var emptyValue T
 	for {
-		c.mtx.Lock()
-		val, wake := c.val, c.bcast.GetWaitCh()
-		c.mtx.Unlock()
+		var val T
+		var wake <-chan struct{}
+		c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			val = c.val
+			wake = getWaitCh()
+		})
 		if valid != nil {
 			ok, err = valid(val)
 		} else {
