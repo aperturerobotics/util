@@ -10,11 +10,17 @@ import (
 type CContainer[T comparable] struct {
 	bcast broadcast.Broadcast
 	val   T
+	equal func(a, b T) bool
 }
 
 // NewCContainer builds a CContainer with an initial value.
 func NewCContainer[T comparable](val T) *CContainer[T] {
 	return &CContainer[T]{val: val}
+}
+
+// NewCContainerWithEqual builds a CContainer with an initial value and a comparator.
+func NewCContainerWithEqual[T comparable](val T, isEqual func(a, b T) bool) *CContainer[T] {
+	return &CContainer[T]{val: val, equal: isEqual}
 }
 
 // GetValue returns the immediate value of the container.
@@ -29,7 +35,7 @@ func (c *CContainer[T]) GetValue() T {
 // SetValue sets the ccontainer value.
 func (c *CContainer[T]) SetValue(val T) {
 	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		if c.val != val {
+		if !c.compare(c.val, val) {
 			c.val = val
 			broadcast()
 		}
@@ -46,7 +52,7 @@ func (c *CContainer[T]) SwapValue(cb func(val T) T) T {
 		val = c.val
 		if cb != nil {
 			val = cb(val)
-			if val != c.val {
+			if !c.compare(c.val, val) {
 				c.val = val
 				broadcast()
 			}
@@ -75,7 +81,7 @@ func (c *CContainer[T]) WaitValueWithValidator(
 		if valid != nil {
 			ok, err = valid(val)
 		} else {
-			ok = val != emptyValue
+			ok = !c.compare(val, emptyValue)
 			err = nil
 		}
 		if err != nil {
@@ -103,7 +109,7 @@ func (c *CContainer[T]) WaitValueWithValidator(
 func (c *CContainer[T]) WaitValue(ctx context.Context, errCh <-chan error) (T, error) {
 	return c.WaitValueWithValidator(ctx, func(v T) (bool, error) {
 		var emptyValue T
-		return v != emptyValue, nil
+		return !c.compare(emptyValue, v), nil
 	}, errCh)
 }
 
@@ -111,7 +117,7 @@ func (c *CContainer[T]) WaitValue(ctx context.Context, errCh <-chan error) (T, e
 // errCh is an optional channel to read an error from.
 func (c *CContainer[T]) WaitValueChange(ctx context.Context, old T, errCh <-chan error) (T, error) {
 	return c.WaitValueWithValidator(ctx, func(v T) (bool, error) {
-		return v != old, nil
+		return !c.compare(old, v), nil
 	}, errCh)
 }
 
@@ -120,9 +126,20 @@ func (c *CContainer[T]) WaitValueChange(ctx context.Context, old T, errCh <-chan
 func (c *CContainer[T]) WaitValueEmpty(ctx context.Context, errCh <-chan error) error {
 	_, err := c.WaitValueWithValidator(ctx, func(v T) (bool, error) {
 		var emptyValue T
-		return v == emptyValue, nil
+		return c.compare(emptyValue, v), nil
 	}, errCh)
 	return err
+}
+
+// compare checks of two values are equal
+func (c *CContainer[T]) compare(a, b T) bool {
+	if a == b {
+		return true
+	}
+	if c.equal != nil && c.equal(a, b) {
+		return true
+	}
+	return false
 }
 
 // _ is a type assertion

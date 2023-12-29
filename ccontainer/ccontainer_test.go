@@ -49,3 +49,64 @@ func TestCContainer(t *testing.T) {
 		}
 	}
 }
+
+// TestCContainerWithEqual tests the concurrent container with an equal checker
+func TestCContainerWithEqual(t *testing.T) {
+	type data struct {
+		value string
+	}
+
+	ctx := context.Background()
+	c := NewCContainerWithEqual[*data](nil, func(a, b *data) bool {
+		if (a == nil) != (b == nil) {
+			return false
+		}
+		if b.value == "same" {
+			return true
+		}
+		return a.value == b.value
+	})
+
+	mkInitial := func() *data {
+		return &data{value: "hello"}
+	}
+	c.SetValue(mkInitial())
+
+	var done chan struct{}
+	start := func() {
+		done = make(chan struct{})
+		go func() {
+			_, _ = c.WaitValueChange(ctx, mkInitial(), nil)
+			close(done)
+		}()
+	}
+	start()
+	assertDone := func() {
+		select {
+		case <-done:
+		case <-time.After(time.Millisecond * 100):
+			t.Fatal("expected WaitValueChange to have returned")
+		}
+	}
+	assertNotDone := func() {
+		select {
+		case <-done:
+			t.Fatal("expected WaitValueChange to not return yet")
+		case <-time.After(time.Millisecond * 50):
+		}
+	}
+	assertNotDone()
+	c.SetValue(mkInitial())
+	assertNotDone()
+	c.SetValue(&data{value: "same"})
+	assertNotDone()
+	c.SetValue(&data{value: "different"})
+	assertDone()
+	start()
+	assertDone()
+	c.SetValue(mkInitial())
+	start()
+	assertNotDone()
+	c.SetValue(&data{value: "different"})
+	assertDone()
+}
