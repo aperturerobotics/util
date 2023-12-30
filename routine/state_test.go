@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/vtcompare"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,7 +38,7 @@ func TestStateRoutineContainer(t *testing.T) {
 		}
 	}
 
-	k := NewStateRoutineContainerWithLogger(CompareComparable[int](), le)
+	k := NewStateRoutineContainerWithLogger[int](vtcompare.CompareComparable[int](), le)
 	if _, wasReset, running := k.SetStateRoutine(routineFn); wasReset || running {
 		// expected !wasReset and !running before context is set
 		t.FailNow()
