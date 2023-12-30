@@ -1,0 +1,25 @@
+syntax = "proto3";
+package filter;
+
+// StringFilter matches the value of a string against a set of rules.
+// All of the non-zero rules must match for the filter to match.
+// An empty filter matches any.
+message StringFilter {
+  // Empty matches the value against the empty value.
+  bool empty = 1;
+  // NotEmpty matches the value against a not-empty value.
+  bool not_empty = 2;
+  // Value matches an exact value.
+  string value = 3;
+  // Values matches one or more exact values.
+  // If any of the values match, this field is considered matched.
+  repeated string values = 4;
+  // Re matches the value against a regular expression.
+  string re = 5;
+  // HasPrefix checks if the value has the given prefix.
+  string has_prefix = 6;
+  // HasSuffix checks if the value has the given suffix.
+  string has_suffix = 7;
+  // Contains checks if the value contains the given value.
+  string contains = 8;
+}
