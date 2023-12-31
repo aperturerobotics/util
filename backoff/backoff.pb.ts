@@ -163,12 +163,12 @@ export const Backoff = {
     source: AsyncIterable<Backoff | Backoff[]> | Iterable<Backoff | Backoff[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Backoff.encode(p).finish()];
         }
       } else {
-        yield* [Backoff.encode(pkt).finish()];
+        yield* [Backoff.encode(pkt as any).finish()];
       }
     }
   },
@@ -179,12 +179,12 @@ export const Backoff = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Backoff> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Backoff.decode(p)];
         }
       } else {
-        yield* [Backoff.decode(pkt)];
+        yield* [Backoff.decode(pkt as any)];
       }
     }
   },
@@ -308,12 +308,12 @@ export const Exponential = {
     source: AsyncIterable<Exponential | Exponential[]> | Iterable<Exponential | Exponential[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Exponential.encode(p).finish()];
         }
       } else {
-        yield* [Exponential.encode(pkt).finish()];
+        yield* [Exponential.encode(pkt as any).finish()];
       }
     }
   },
@@ -324,23 +324,23 @@ export const Exponential = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Exponential> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Exponential.decode(p)];
         }
       } else {
-        yield* [Exponential.decode(pkt)];
+        yield* [Exponential.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): Exponential {
     return {
-      initialInterval: isSet(object.initialInterval) ? Number(object.initialInterval) : 0,
-      multiplier: isSet(object.multiplier) ? Number(object.multiplier) : 0,
-      maxInterval: isSet(object.maxInterval) ? Number(object.maxInterval) : 0,
-      randomizationFactor: isSet(object.randomizationFactor) ? Number(object.randomizationFactor) : 0,
-      maxElapsedTime: isSet(object.maxElapsedTime) ? Number(object.maxElapsedTime) : 0,
+      initialInterval: isSet(object.initialInterval) ? globalThis.Number(object.initialInterval) : 0,
+      multiplier: isSet(object.multiplier) ? globalThis.Number(object.multiplier) : 0,
+      maxInterval: isSet(object.maxInterval) ? globalThis.Number(object.maxInterval) : 0,
+      randomizationFactor: isSet(object.randomizationFactor) ? globalThis.Number(object.randomizationFactor) : 0,
+      maxElapsedTime: isSet(object.maxElapsedTime) ? globalThis.Number(object.maxElapsedTime) : 0,
     };
   },
 
@@ -419,12 +419,12 @@ export const Constant = {
     source: AsyncIterable<Constant | Constant[]> | Iterable<Constant | Constant[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Constant.encode(p).finish()];
         }
       } else {
-        yield* [Constant.encode(pkt).finish()];
+        yield* [Constant.encode(pkt as any).finish()];
       }
     }
   },
@@ -435,18 +435,18 @@ export const Constant = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Constant> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Constant.decode(p)];
         }
       } else {
-        yield* [Constant.decode(pkt)];
+        yield* [Constant.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): Constant {
-    return { interval: isSet(object.interval) ? Number(object.interval) : 0 };
+    return { interval: isSet(object.interval) ? globalThis.Number(object.interval) : 0 };
   },
 
   toJSON(message: Constant): unknown {
@@ -470,7 +470,7 @@ export const Constant = {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
