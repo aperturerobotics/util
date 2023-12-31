@@ -27,11 +27,32 @@ func (c *Broadcast) Broadcast() {
 	c.broadcastLocked()
 }
 
-// AccessLock locks the mutex and calls the callback.
+// HoldLock locks the mutex and calls the callback.
 func (c *Broadcast) HoldLock(cb func(broadcast func(), getWaitCh func() <-chan struct{})) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	cb(c.broadcastLocked, c.getWaitChLocked)
+}
+
+// HoldLockMaybeAsync locks the mutex and calls the callback if possible.
+// If the mutex cannot be locked right now, starts a new Goroutine to wait for it.
+func (c *Broadcast) HoldLockMaybeAsync(cb func(broadcast func(), getWaitCh func() <-chan struct{})) {
+	holdBroadcastLock := func(lock bool) {
+		if lock {
+			c.mtx.Lock()
+		}
+		// use defer to catch panic cases
+		defer c.mtx.Unlock()
+		cb(c.broadcastLocked, c.getWaitChLocked)
+	}
+
+	// fast path: lock immediately
+	if c.mtx.TryLock() {
+		holdBroadcastLock(false)
+	} else {
+		// slow path: use separate goroutine
+		go holdBroadcastLock(true)
+	}
 }
 
 // broadcastLocked is the implementation of Broadcast while mtx is locked.
