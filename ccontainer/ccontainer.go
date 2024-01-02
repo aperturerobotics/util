@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/vtcompare"
 )
 
 // CContainer is a concurrent container.
@@ -21,6 +22,11 @@ func NewCContainer[T comparable](val T) *CContainer[T] {
 // NewCContainerWithEqual builds a CContainer with an initial value and a comparator.
 func NewCContainerWithEqual[T comparable](val T, isEqual func(a, b T) bool) *CContainer[T] {
 	return &CContainer[T]{val: val, equal: isEqual}
+}
+
+// NewCContainerVT constructs a CContainer that uses VTEqual to check for equality.
+func NewCContainerVT[T vtcompare.EqualVT[T]](val T) *CContainer[T] {
+	return NewCContainerWithEqual[T](val, vtcompare.CompareEqualVT[T]())
 }
 
 // GetValue returns the immediate value of the container.
