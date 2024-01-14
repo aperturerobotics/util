@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/backoff"
+	cbackoff "github.com/cenkalti/backoff"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,7 +45,22 @@ func WithReleaseDelay[K comparable, V any](delay time.Duration) Option[K, V] {
 // If the backoff config is nil, disables retry.
 func WithRetry[K comparable, V any](bo *backoff.Backoff) Option[K, V] {
 	return newOption(func(k *Keyed[K, V]) {
-		k.backoffConf = bo
+		if bo == nil {
+			k.backoffFactory = nil
+		} else {
+			k.backoffFactory = func(k K) cbackoff.BackOff {
+				return bo.Construct()
+			}
+		}
+	})
+}
+
+// WithBackoff adds a function to call to construct a backoff.
+//
+// If the function returns nil, disables retry.
+func WithBackoff[K comparable, V any](cb func(k K) cbackoff.BackOff) Option[K, V] {
+	return newOption(func(k *Keyed[K, V]) {
+		k.backoffFactory = cb
 	})
 }
 

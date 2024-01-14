@@ -50,11 +50,11 @@ func newRunningRoutine[K comparable, V any](
 	key K,
 	routine Routine,
 	data V,
-	backoffConf *backoff.Backoff,
+	backoffFactory func(k K) cbackoff.BackOff,
 ) *runningRoutine[K, V] {
 	var backoff cbackoff.BackOff
-	if backoffConf != nil {
-		backoff = backoffConf.Construct()
+	if backoffFactory != nil {
+		backoff = backoffFactory(key)
 	}
 	return &runningRoutine[K, V]{
 		k:       k,
