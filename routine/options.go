@@ -71,7 +71,6 @@ func WithRetry(boConf *backoff.Backoff) Option {
 // WithBackoff configures a backoff to use when the routine returns an error.
 //
 // resets the backoff if the routine returned successfully.
-// le is an optional logger to log the backoff.
 // disables the backoff if bo = nil
 func WithBackoff(bo cbackoff.BackOff) Option {
 	return newOption(func(k *RoutineContainer) {
