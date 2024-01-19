@@ -73,10 +73,10 @@ github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQ
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af h1:nRveANX8PK0j+6M+d6Hyl45W+fQpg6BDBfcrrFMbbrw=
-github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
-github.com/aperturerobotics/protobuf-go v1.32.1-0.20231231025138-7d69d9b7299c h1:jCigMalhvE9ipAQjLYMvH8juE5bUQKVWKVQDHA65psg=
-github.com/aperturerobotics/protobuf-go v1.32.1-0.20231231025138-7d69d9b7299c/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
+github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
+github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
+github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f h1:mnmO0JHfvlE/yK2kiKQ/Q2aYhCETkl6FP07rcmvoBKw=
+github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
 github.com/aperturerobotics/starpc v0.19.2 h1:sTPkPtL3k3t1K9OrnIHiY+zVuokoP17lTwHqrFQmZNE=
 github.com/aperturerobotics/starpc v0.19.2/go.mod h1:3VR2ZLfMvcDYDaEbS08r75G5MSlhRk9TsCdYhyAz7lc=
 github.com/ashanbrown/forbidigo v1.5.3 h1:jfg+fkm/snMx+V9FBwsl1d340BV/99kZGv5jN9hBoXk=

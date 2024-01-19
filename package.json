@@ -40,18 +40,18 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "0.8.2",
+    "@aperturerobotics/ts-common": "0.8.3",
     "patch-package": "^8.0.0",
-    "prettier": "^3.0.3",
+    "prettier": "^3.2.4",
     "ts-poet": "6.6.0",
-    "ts-proto": "^1.166.1",
+    "ts-proto": "^1.166.3",
     "typescript": "^5.1.6"
   },
   "dependencies": {
     "bufferutil": "^4.0.7",
     "long": "^5.2.1",
-    "protobufjs": "^7.2.4",
-    "starpc": "^0.22.5",
+    "protobufjs": "^7.2.6",
+    "starpc": "^0.22.7",
     "utf-8-validate": "^6.0.3"
   }
 }
