@@ -85,7 +85,12 @@ func (s *ConcurrentQueue) WaitIdle(ctx context.Context, errCh <-chan error) erro
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case err := <-errCh:
+		case err, ok := <-errCh:
+			if !ok {
+				// errCh was non-nil but was closed
+				// treat this as context canceled
+				return context.Canceled
+			}
 			if err != nil {
 				return err
 			}

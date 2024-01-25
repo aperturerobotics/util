@@ -83,7 +83,11 @@ func (k *RoutineContainer) WaitExited(ctx context.Context, returnIfNotRunning bo
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case err := <-errCh:
+		case err, ok := <-errCh:
+			if !ok {
+				// errCh was closed
+				return context.Canceled
+			}
 			return err
 		case <-waitCh:
 		}
@@ -291,12 +295,8 @@ func (r *runningRoutine) execute(
 			err = context.Canceled
 		case <-waitCh:
 		}
-	} else {
-		select {
-		case <-ctx.Done():
-			err = context.Canceled
-		default:
-		}
+	} else if ctx.Err() != nil {
+		err = context.Canceled
 	}
 
 	if err == nil {

@@ -100,7 +100,12 @@ func (c *CContainer[T]) WaitValueWithValidator(
 		select {
 		case <-ctx.Done():
 			return emptyValue, ctx.Err()
-		case err := <-errCh:
+		case err, ok := <-errCh:
+			if !ok {
+				// errCh was non-nil but was closed
+				// treat this as context canceled
+				return emptyValue, context.Canceled
+			}
 			if err != nil {
 				return emptyValue, err
 			}

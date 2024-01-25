@@ -97,7 +97,12 @@ func (p *PromiseContainer[T]) AwaitWithErrCh(ctx context.Context, errCh <-chan e
 			select {
 			case <-ctx.Done():
 				return val, context.Canceled
-			case err := <-errCh:
+			case err, ok := <-errCh:
+				if !ok {
+					// errCh was non-nil but was closed
+					// treat this as context canceled
+					return val, context.Canceled
+				}
 				return val, err
 			case <-replaceCh:
 			}
