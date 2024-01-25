@@ -14,7 +14,7 @@ func TestCContainer(t *testing.T) {
 	errCh := make(chan error, 1)
 	_ = c.WaitValueEmpty(ctx, errCh) // should be instant
 
-	var val = 5
+	val := 5
 	go c.SetValue(&val)
 	gv, err := c.WaitValue(ctx, errCh)
 	if err != nil {

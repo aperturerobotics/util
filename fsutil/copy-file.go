@@ -53,7 +53,7 @@ func CopyRecursive(dstDir, src string, cb fs.WalkDirFunc) error {
 		}
 		dstPath := filepath.Join(dstDir, srcRel)
 		dstParent := filepath.Dir(dstPath)
-		if err := os.MkdirAll(dstParent, 0755); err != nil {
+		if err := os.MkdirAll(dstParent, 0o755); err != nil {
 			return err
 		}
 		if info.Type().IsRegular() {
@@ -65,7 +65,7 @@ func CopyRecursive(dstDir, src string, cb fs.WalkDirFunc) error {
 				}
 			}
 		} else if info.IsDir() {
-			if err := os.MkdirAll(dstPath, 0755); err != nil {
+			if err := os.MkdirAll(dstPath, 0o755); err != nil {
 				return err
 			}
 		} else if info.Type()&fs.ModeSymlink != 0 {

@@ -25,7 +25,7 @@ func CleanCreateDir(path string) error {
 	if err := CleanDir(path); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(path, 0755); err != nil {
+	if err := os.MkdirAll(path, 0o755); err != nil {
 		return err
 	}
 	return nil

@@ -41,7 +41,7 @@ func main() {
 	}
 	out.WriteString("}\n")
 
-	err = os.WriteFile("gotargets.gen.go", out.Bytes(), 0644)
+	err = os.WriteFile("gotargets.gen.go", out.Bytes(), 0o644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing gotargets.gen.go: %v\n", err)
 		os.Exit(1)

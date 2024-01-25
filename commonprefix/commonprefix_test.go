@@ -84,7 +84,7 @@ func TestTrimPrefix1(t *testing.T) {
 
 func TestTrimPrefix2(t *testing.T) {
 	strs := []string{"flower", "tree"}
-	TrimPrefix(strs...) //no common prefix
+	TrimPrefix(strs...) // no common prefix
 	if strs[0] != "flower" {
 		t.Fatalf("fail: expected result string to be 'flower', got '%s'", strs[0])
 	}

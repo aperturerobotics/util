@@ -14,7 +14,7 @@ func TestWatchable(t *testing.T) {
 	w := ToWatchable(c)
 	_ = w.WaitValueEmpty(ctx, errCh) // should be instant
 
-	var val = 5
+	val := 5
 	go c.SetValue(&val)
 	gv, err := w.WaitValue(ctx, errCh)
 	if err != nil {
