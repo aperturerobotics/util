@@ -2,7 +2,6 @@ package ccall
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 )
@@ -22,28 +21,32 @@ func CallConcurrently(ctx context.Context, fns ...CallConcurrentlyFunc) error {
 		return fns[0](subCtx)
 	}
 
-	var mtx sync.Mutex
 	var bcast broadcast.Broadcast
 	var running int
 	var exitErr error
-	mtx.Lock()
-	for _, fn := range fns {
-		if fn == nil {
-			continue
-		}
-		running++
-		go func(fn CallConcurrentlyFunc) {
-			err := fn(subCtx)
-			mtx.Lock()
+
+	callFunc := func(fn CallConcurrentlyFunc) {
+		err := fn(subCtx)
+		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			running--
 			if err != nil && (exitErr == nil || exitErr == context.Canceled) {
 				exitErr = err
 			}
-			bcast.Broadcast()
-			mtx.Unlock()
-		}(fn)
+			broadcast()
+		})
 	}
-	mtx.Unlock()
+
+	var waitCh <-chan struct{}
+	bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		waitCh = getWaitCh()
+		for _, fn := range fns {
+			if fn == nil {
+				continue
+			}
+			running++
+			go callFunc(fn)
+		}
+	})
 	if running == 0 {
 		return nil
 	}
@@ -52,14 +55,17 @@ func CallConcurrently(ctx context.Context, fns ...CallConcurrentlyFunc) error {
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case <-bcast.GetWaitCh():
+		case <-waitCh:
 		}
 
-		mtx.Lock()
-		currRunning := running
-		currExitErr := exitErr
-		mtx.Unlock()
-		if currRunning == 0 || currExitErr != nil {
+		var currRunning int
+		var currExitErr error
+		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			currRunning = running
+			currExitErr = exitErr
+			waitCh = getWaitCh()
+		})
+		if currRunning == 0 || (currExitErr != nil && currExitErr != context.Canceled) {
 			return currExitErr
 		}
 	}
