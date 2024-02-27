@@ -23,7 +23,6 @@ Various utilities for Go and TypeScript including:
  - [iocloser]: wrap reader/writer with a close function
  - [iosizer]: read/writer with metrics for size
  - [keyed]: key/value based routine management
- - [keyedlist]: deduplicated list of items by key
  - [linkedlist]: linked list with head/tail
  - [memo]: memoize a function: call it once and remember results
  - [padding]: pad / unpad a byte array slice
@@ -32,6 +31,7 @@ Various utilities for Go and TypeScript including:
  - [refcount]: reference counter ccontainer
  - [routine]: start, stop, restart, reset a goroutine
  - [scrub]: zero a buffer after usage
+ - [unique]: deduplicated list of items by key
 
 [backoff]: ./backoff
 [broadcast]: ./broadcast
@@ -47,7 +47,6 @@ Various utilities for Go and TypeScript including:
 [iocloser]: ./iocloser
 [iosizer]: ./iosizer
 [keyed]: ./keyed
-[keyedlist]: ./keyedlist
 [linkedlist]: ./linkedlist
 [memo]: ./memo
 [padding]: ./padding
@@ -56,6 +55,7 @@ Various utilities for Go and TypeScript including:
 [refcount]: ./refcount
 [routine]: ./routine
 [scrub]: ./scrub
+[unique]: ./unique
 
 ## License
 

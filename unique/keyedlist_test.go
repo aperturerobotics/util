@@ -1,4 +1,4 @@
-package keyedlist
+package unique
 
 import (
 	"fmt"
@@ -7,40 +7,40 @@ import (
 	"testing"
 )
 
-type testValue struct {
+type testKeyedListValue struct {
 	id   int
 	name string
 }
 
 func TestKeyedList(t *testing.T) {
 	// Setup getKey, cmp, and changed functions
-	getKey := func(v testValue) int {
+	getKey := func(v testKeyedListValue) int {
 		return v.id
 	}
 
-	cmp := func(a, b testValue) bool {
+	cmp := func(a, b testKeyedListValue) bool {
 		return a.name == b.name
 	}
 
 	var changes []struct {
 		key     int
-		value   testValue
+		value   testKeyedListValue
 		added   bool
 		removed bool
 	}
-	changed := func(k int, v testValue, added, removed bool) {
+	changed := func(k int, v testKeyedListValue, added, removed bool) {
 		changes = append(changes, struct {
 			key     int
-			value   testValue
+			value   testKeyedListValue
 			added   bool
 			removed bool
 		}{k, v, added, removed})
 	}
 
-	initial := []testValue{{1, "Alice"}, {2, "Bob"}}
+	initial := []testKeyedListValue{{1, "Alice"}, {2, "Bob"}}
 
 	// Create new KeyedList
-	list := NewKeyedList[int, testValue](getKey, cmp, changed, initial)
+	list := NewKeyedList[int, testKeyedListValue](getKey, cmp, changed, initial)
 
 	t.Run("GetKeys", func(t *testing.T) {
 		expectedKeys := []int{1, 2}
@@ -52,7 +52,7 @@ func TestKeyedList(t *testing.T) {
 	})
 
 	t.Run("GetValues", func(t *testing.T) {
-		expectedValues := []testValue{{1, "Alice"}, {2, "Bob"}}
+		expectedValues := []testKeyedListValue{{1, "Alice"}, {2, "Bob"}}
 		values := list.GetValues()
 		sort.Slice(values, func(i, j int) bool {
 			return values[i].id < values[j].id
@@ -66,13 +66,13 @@ func TestKeyedList(t *testing.T) {
 		// Reset changes tracking
 		changes = nil
 
-		newValues := []testValue{{2, "Bobby"}, {3, "Charlie"}}
+		newValues := []testKeyedListValue{{2, "Bobby"}, {3, "Charlie"}}
 		list.SetValues(newValues...)
 
 		// Prepare a map to track the occurrence of changes
 		changesMap := make(map[string]struct {
 			key     int
-			value   testValue
+			value   testKeyedListValue
 			added   bool
 			removed bool
 		})
@@ -84,7 +84,7 @@ func TestKeyedList(t *testing.T) {
 		// Define a function to check for an expected change
 		checkForChange := func(expected struct {
 			key     int
-			value   testValue
+			value   testKeyedListValue
 			added   bool
 			removed bool
 		}) {
@@ -97,7 +97,7 @@ func TestKeyedList(t *testing.T) {
 		// Check for each expected change
 		expectedChanges := []struct {
 			key     int
-			value   testValue
+			value   testKeyedListValue
 			added   bool
 			removed bool
 		}{
@@ -114,13 +114,13 @@ func TestKeyedList(t *testing.T) {
 		// Reset changes tracking
 		changes = nil
 
-		appendValues := []testValue{{3, "Charlie"}, {4, "Dana"}}
+		appendValues := []testKeyedListValue{{3, "Charlie"}, {4, "Dana"}}
 		list.AppendValues(appendValues...)
 
 		// Check for expected changes
 		expectedChanges := []struct {
 			key     int
-			value   testValue
+			value   testKeyedListValue
 			added   bool
 			removed bool
 		}{
@@ -137,17 +137,17 @@ func TestKeyedList(t *testing.T) {
 		changes = nil
 
 		// Remove by value and key
-		list.RemoveValues(testValue{2, "Bobby"})
+		list.RemoveValues(testKeyedListValue{2, "Bobby"})
 		list.RemoveKeys(4) // Dana
 
 		expectedChanges := []struct {
 			key     int
-			value   testValue
+			value   testKeyedListValue
 			added   bool
 			removed bool
 		}{
-			{2, testValue{2, "Bobby"}, false, true}, // removed by value
-			{4, testValue{4, "Dana"}, false, true},  // removed by key
+			{2, testKeyedListValue{2, "Bobby"}, false, true}, // removed by value
+			{4, testKeyedListValue{4, "Dana"}, false, true},  // removed by key
 		}
 		if !reflect.DeepEqual(changes, expectedChanges) {
 			t.Errorf("expected changes %v, got %v", expectedChanges, changes)
