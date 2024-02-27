@@ -15,7 +15,7 @@ import (
 // V is the value type
 type KeyedList[K, V comparable] struct {
 	getKey  func(val V) K
-	cmp     func(a, b V) bool
+	cmp     func(k K, a, b V) bool
 	changed func(k K, v V, added, removed bool)
 	vals    map[K]V
 }
@@ -23,7 +23,7 @@ type KeyedList[K, V comparable] struct {
 // NewKeyedList constructs a new KeyedList.
 func NewKeyedList[K, V comparable](
 	getKey func(v V) K,
-	cmp func(a, b V) bool,
+	cmp func(k K, a, b V) bool,
 	changed func(k K, v V, added, removed bool),
 	initial []V,
 ) *KeyedList[K, V] {
@@ -69,7 +69,7 @@ func (l *KeyedList[K, V]) SetValues(vals ...V) {
 		existing, ok := l.vals[k]
 		if ok {
 			// changed
-			if !l.cmp(v, existing) {
+			if !l.cmp(k, v, existing) {
 				l.vals[k] = v
 				l.changed(k, v, false, false)
 			}
@@ -98,7 +98,7 @@ func (l *KeyedList[K, V]) AppendValues(vals ...V) {
 		existing, ok := l.vals[k]
 		if ok {
 			// changed
-			if !l.cmp(v, existing) {
+			if !l.cmp(k, v, existing) {
 				l.vals[k] = v
 				l.changed(k, v, false, false)
 			}

@@ -18,7 +18,7 @@ func TestKeyedList(t *testing.T) {
 		return v.id
 	}
 
-	cmp := func(a, b testKeyedListValue) bool {
+	cmp := func(k int, a, b testKeyedListValue) bool {
 		return a.name == b.name
 	}
 
