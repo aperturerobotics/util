@@ -10,6 +10,12 @@ import (
 	"github.com/aperturerobotics/util/promise"
 )
 
+// RefCountResolver resolves a value within a RefCount container.
+//
+// Accepts a released callback which can be called when the returned value is invalid.
+// Returns a release function which will be called when the returned value is no longer needed.
+type RefCountResolver[T comparable] func(ctx context.Context, released func()) (T, func(), error)
+
 // RefCount is a refcount driven object container.
 // Wraps a ccontainer with a ref count mechanism.
 // When there are no references, the container contents are released.
@@ -26,7 +32,7 @@ type RefCount[T comparable] struct {
 	// resolver is the resolver function
 	// returns the value and a release function
 	// call the released callback if the value is no longer valid.
-	resolver func(ctx context.Context, released func()) (T, func(), error)
+	resolver RefCountResolver[T]
 	// mtx guards below fields
 	mtx sync.Mutex
 	// refs is the list of references.
@@ -84,7 +90,7 @@ func NewRefCount[T comparable](
 	keepUnref bool,
 	target *ccontainer.CContainer[T],
 	targetErr *ccontainer.CContainer[*error],
-	resolver func(ctx context.Context, released func()) (T, func(), error),
+	resolver RefCountResolver[T],
 ) *RefCount[T] {
 	return &RefCount[T]{
 		ctx:       ctx,
