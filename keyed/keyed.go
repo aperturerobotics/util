@@ -220,12 +220,8 @@ func (k *Keyed[K, V]) SyncKeys(keys []K, restart bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
-	if k.ctx != nil {
-		select {
-		case <-k.ctx.Done():
-			k.ctx = nil
-		default:
-		}
+	if k.ctx != nil && k.ctx.Err() != nil {
+		k.ctx = nil
 	}
 
 	routines := make(map[K]*runningRoutine[K, V], len(keys))
@@ -280,18 +276,42 @@ func (k *Keyed[K, V]) ResetRoutine(key K, conds ...func(V) bool) (existed bool, 
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
-	if k.ctx != nil {
-		select {
-		case <-k.ctx.Done():
-			k.ctx = nil
-		default:
+	return k.resetRoutineLocked(key, conds...)
+}
+
+// ResetAllRoutines resets all routines after checking the condition functions.
+// If any of the conds functions return true for an instance, resets the instance.
+//
+// Resetting the instance constructs a new Routine and data with the constructor.
+// Note: this will overwrite the existing Data, if present!
+// In most cases RestartRoutine is actually what you want.
+//
+// If len(conds) == 0, always resets the keys.
+func (k *Keyed[K, V]) ResetAllRoutines(conds ...func(V) bool) (resetCount, totalCount int) {
+	k.mtx.Lock()
+	defer k.mtx.Unlock()
+
+	totalCount = len(k.routines)
+	for key := range k.routines {
+		if existed, reset := k.resetRoutineLocked(key, conds...); existed && reset {
+			resetCount++
 		}
+	}
+
+	return
+}
+
+// resetRoutineLocked resets the given routine while mtx is locked.
+func (k *Keyed[K, V]) resetRoutineLocked(key K, conds ...func(V) bool) (existed bool, reset bool) {
+	if k.ctx != nil && k.ctx.Err() != nil {
+		k.ctx = nil
 	}
 
 	v, existed := k.routines[key]
 	if !existed {
 		return false, false
 	}
+
 	anyMatched := len(conds) == 0
 	for _, cond := range conds {
 		if cond != nil && cond(v.data) {
@@ -325,12 +345,31 @@ func (k *Keyed[K, V]) RestartRoutine(key K, conds ...func(V) bool) (existed bool
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
-	if k.ctx != nil {
-		select {
-		case <-k.ctx.Done():
-			k.ctx = nil
-		default:
+	return k.restartRoutineLocked(key, conds...)
+}
+
+// RestartAllRoutines restarts all routines after checking the condition functions.
+// If any return true, and the routine is running, restarts the instance.
+//
+// If len(conds) == 0, always resets the keys.
+func (k *Keyed[K, V]) RestartAllRoutines(conds ...func(V) bool) (restartedCount, totalCount int) {
+	k.mtx.Lock()
+	defer k.mtx.Unlock()
+
+	totalCount = len(k.routines)
+	for key := range k.routines {
+		if existed, reset := k.restartRoutineLocked(key, conds...); existed && reset {
+			restartedCount++
 		}
+	}
+
+	return
+}
+
+// resetRoutineLocked restarts the given routine while mtx is locked.
+func (k *Keyed[K, V]) restartRoutineLocked(key K, conds ...func(V) bool) (existed bool, reset bool) {
+	if k.ctx != nil && k.ctx.Err() != nil {
+		k.ctx = nil
 	}
 
 	v, existed := k.routines[key]
@@ -340,6 +379,7 @@ func (k *Keyed[K, V]) RestartRoutine(key K, conds ...func(V) bool) (existed bool
 	if k.ctx == nil {
 		return true, false
 	}
+
 	anyMatched := len(conds) == 0
 	for _, cond := range conds {
 		if cond != nil && cond(v.data) {

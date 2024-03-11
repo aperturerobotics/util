@@ -132,6 +132,26 @@ func (k *KeyedRefCount[K, V]) RestartRoutine(key K, conds ...func(V) bool) (exis
 	return k.keyed.RestartRoutine(key, conds...)
 }
 
+// ResetAllRoutines resets all routines after checking the condition functions.
+// If any of the conds functions return true for an instance, resets the instance.
+//
+// Resetting the instance constructs a new Routine and data with the constructor.
+// Note: this will overwrite the existing Data, if present!
+// In most cases RestartRoutine is actually what you want.
+//
+// If len(conds) == 0, always resets the keys.
+func (k *KeyedRefCount[K, V]) ResetAllRoutines(conds ...func(V) bool) (resetCount, totalCount int) {
+	return k.keyed.ResetAllRoutines(conds...)
+}
+
+// RestartAllRoutines restarts all routines after checking the condition functions.
+// If any return true, and the routine is running, restarts the instance.
+//
+// If len(conds) == 0, always resets the keys.
+func (k *KeyedRefCount[K, V]) RestartAllRoutines(conds ...func(V) bool) (restartedCount, totalCount int) {
+	return k.keyed.RestartAllRoutines(conds...)
+}
+
 // RemoveKey removes all references to a key deleting it from the set and returning if it existed.
 //
 // Returns if the key existed.
