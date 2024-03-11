@@ -3,6 +3,7 @@ package keyed
 import (
 	"context"
 	"errors"
+	"slices"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -33,13 +34,24 @@ func TestKeyed(t *testing.T) {
 		}, &testData{}
 	}, WithExitLogger[string, *testData](le))
 
-	nsend := 100
+	nsend := 101
 	keys := make([]string, nsend)
 	for i := 0; i < nsend; i++ {
 		key := "routine-" + strconv.Itoa(i)
 		keys[i] = key
 	}
-	k.SyncKeys(keys, false)
+
+	added, removed := k.SyncKeys(keys, false)
+	if len(removed) != 0 || !slices.Equal(added, keys) {
+		t.FailNow()
+	}
+
+	nsend--
+	keys = keys[:nsend]
+	added, removed = k.SyncKeys(keys, false)
+	if len(removed) != 1 || len(added) != 0 {
+		t.FailNow()
+	}
 
 	// expect nothing to have been pushed to vals yet
 	<-time.After(time.Millisecond * 10)

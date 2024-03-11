@@ -216,7 +216,7 @@ func (k *Keyed[K, V]) RemoveKey(key K) bool {
 
 // SyncKeys synchronizes the list of running routines with the given list.
 // If restart=true, restarts any routines in the failed state.
-func (k *Keyed[K, V]) SyncKeys(keys []K, restart bool) {
+func (k *Keyed[K, V]) SyncKeys(keys []K, restart bool) (added, removed []K) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -228,26 +228,31 @@ func (k *Keyed[K, V]) SyncKeys(keys []K, restart bool) {
 	for _, key := range keys {
 		v := routines[key]
 		if v != nil {
+			// already processed
 			continue
 		}
+
 		v, existed := k.routines[key]
 		if !existed {
 			routine, data := k.ctorCb(key)
 			v = newRunningRoutine(k, key, routine, data, k.backoffFactory)
 			k.routines[key] = v
+			added = append(added, key)
 		}
+
 		routines[key] = v
-		if !existed || restart {
-			if k.ctx != nil {
-				v.start(k.ctx, v.exitedCh, false)
-			}
+		if (!existed || restart) && k.ctx != nil {
+			v.start(k.ctx, v.exitedCh, false)
 		}
 	}
 	for key, rr := range k.routines {
 		if _, ok := routines[key]; !ok {
+			removed = append(removed, key)
 			rr.remove()
 		}
 	}
+
+	return
 }
 
 // GetKey returns the value for the given key and existed.
