@@ -120,7 +120,7 @@ func (k *KeyedRefCount[K, V]) GetKey(key K) (V, bool) {
 // If any return true, resets the instance.
 //
 // If len(conds) == 0, always resets the given key.
-func (k *KeyedRefCount[K, V]) ResetRoutine(key K, conds ...func(V) bool) (existed bool, reset bool) {
+func (k *KeyedRefCount[K, V]) ResetRoutine(key K, conds ...func(K, V) bool) (existed bool, reset bool) {
 	return k.keyed.ResetRoutine(key, conds...)
 }
 
@@ -128,7 +128,7 @@ func (k *KeyedRefCount[K, V]) ResetRoutine(key K, conds ...func(V) bool) (existe
 // If any return true, and the routine is running, restarts the instance.
 //
 // If len(conds) == 0, always resets the given key.
-func (k *KeyedRefCount[K, V]) RestartRoutine(key K, conds ...func(V) bool) (existed bool, reset bool) {
+func (k *KeyedRefCount[K, V]) RestartRoutine(key K, conds ...func(K, V) bool) (existed bool, reset bool) {
 	return k.keyed.RestartRoutine(key, conds...)
 }
 
@@ -140,7 +140,7 @@ func (k *KeyedRefCount[K, V]) RestartRoutine(key K, conds ...func(V) bool) (exis
 // In most cases RestartRoutine is actually what you want.
 //
 // If len(conds) == 0, always resets the keys.
-func (k *KeyedRefCount[K, V]) ResetAllRoutines(conds ...func(V) bool) (resetCount, totalCount int) {
+func (k *KeyedRefCount[K, V]) ResetAllRoutines(conds ...func(K, V) bool) (resetCount, totalCount int) {
 	return k.keyed.ResetAllRoutines(conds...)
 }
 
@@ -148,7 +148,7 @@ func (k *KeyedRefCount[K, V]) ResetAllRoutines(conds ...func(V) bool) (resetCoun
 // If any return true, and the routine is running, restarts the instance.
 //
 // If len(conds) == 0, always resets the keys.
-func (k *KeyedRefCount[K, V]) RestartAllRoutines(conds ...func(V) bool) (restartedCount, totalCount int) {
+func (k *KeyedRefCount[K, V]) RestartAllRoutines(conds ...func(K, V) bool) (restartedCount, totalCount int) {
 	return k.keyed.RestartAllRoutines(conds...)
 }
 

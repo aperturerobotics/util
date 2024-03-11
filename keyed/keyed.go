@@ -272,7 +272,7 @@ func (k *Keyed[K, V]) GetKey(key K) (V, bool) {
 // In most cases RestartRoutine is actually what you want.
 //
 // If len(conds) == 0, always resets the given key.
-func (k *Keyed[K, V]) ResetRoutine(key K, conds ...func(V) bool) (existed bool, reset bool) {
+func (k *Keyed[K, V]) ResetRoutine(key K, conds ...func(K, V) bool) (existed bool, reset bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -287,7 +287,7 @@ func (k *Keyed[K, V]) ResetRoutine(key K, conds ...func(V) bool) (existed bool, 
 // In most cases RestartRoutine is actually what you want.
 //
 // If len(conds) == 0, always resets the keys.
-func (k *Keyed[K, V]) ResetAllRoutines(conds ...func(V) bool) (resetCount, totalCount int) {
+func (k *Keyed[K, V]) ResetAllRoutines(conds ...func(K, V) bool) (resetCount, totalCount int) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -302,7 +302,7 @@ func (k *Keyed[K, V]) ResetAllRoutines(conds ...func(V) bool) (resetCount, total
 }
 
 // resetRoutineLocked resets the given routine while mtx is locked.
-func (k *Keyed[K, V]) resetRoutineLocked(key K, conds ...func(V) bool) (existed bool, reset bool) {
+func (k *Keyed[K, V]) resetRoutineLocked(key K, conds ...func(K, V) bool) (existed bool, reset bool) {
 	if k.ctx != nil && k.ctx.Err() != nil {
 		k.ctx = nil
 	}
@@ -314,7 +314,7 @@ func (k *Keyed[K, V]) resetRoutineLocked(key K, conds ...func(V) bool) (existed 
 
 	anyMatched := len(conds) == 0
 	for _, cond := range conds {
-		if cond != nil && cond(v.data) {
+		if cond != nil && cond(key, v.data) {
 			anyMatched = true
 			break
 		}
@@ -341,7 +341,7 @@ func (k *Keyed[K, V]) resetRoutineLocked(key K, conds ...func(V) bool) (existed 
 // If any return true, and the routine is running, restarts the instance.
 //
 // If len(conds) == 0, always resets the given key.
-func (k *Keyed[K, V]) RestartRoutine(key K, conds ...func(V) bool) (existed bool, reset bool) {
+func (k *Keyed[K, V]) RestartRoutine(key K, conds ...func(K, V) bool) (existed bool, reset bool) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -352,7 +352,7 @@ func (k *Keyed[K, V]) RestartRoutine(key K, conds ...func(V) bool) (existed bool
 // If any return true, and the routine is running, restarts the instance.
 //
 // If len(conds) == 0, always resets the keys.
-func (k *Keyed[K, V]) RestartAllRoutines(conds ...func(V) bool) (restartedCount, totalCount int) {
+func (k *Keyed[K, V]) RestartAllRoutines(conds ...func(K, V) bool) (restartedCount, totalCount int) {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 
@@ -367,7 +367,7 @@ func (k *Keyed[K, V]) RestartAllRoutines(conds ...func(V) bool) (restartedCount,
 }
 
 // resetRoutineLocked restarts the given routine while mtx is locked.
-func (k *Keyed[K, V]) restartRoutineLocked(key K, conds ...func(V) bool) (existed bool, reset bool) {
+func (k *Keyed[K, V]) restartRoutineLocked(key K, conds ...func(K, V) bool) (existed bool, reset bool) {
 	if k.ctx != nil && k.ctx.Err() != nil {
 		k.ctx = nil
 	}
@@ -382,7 +382,7 @@ func (k *Keyed[K, V]) restartRoutineLocked(key K, conds ...func(V) bool) (existe
 
 	anyMatched := len(conds) == 0
 	for _, cond := range conds {
-		if cond != nil && cond(v.data) {
+		if cond != nil && cond(key, v.data) {
 			anyMatched = true
 			break
 		}
