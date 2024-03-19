@@ -37,10 +37,10 @@ function createBaseStringFilter(): StringFilter {
 
 export const StringFilter = {
   encode(message: StringFilter, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.empty === true) {
+    if (message.empty !== false) {
       writer.uint32(8).bool(message.empty);
     }
-    if (message.notEmpty === true) {
+    if (message.notEmpty !== false) {
       writer.uint32(16).bool(message.notEmpty);
     }
     if (message.value !== "") {
@@ -183,10 +183,10 @@ export const StringFilter = {
 
   toJSON(message: StringFilter): unknown {
     const obj: any = {};
-    if (message.empty === true) {
+    if (message.empty !== false) {
       obj.empty = message.empty;
     }
-    if (message.notEmpty === true) {
+    if (message.notEmpty !== false) {
       obj.notEmpty = message.notEmpty;
     }
     if (message.value !== "") {
