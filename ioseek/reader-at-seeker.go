@@ -50,5 +50,12 @@ func (r *ReaderAtSeeker) Seek(offset int64, whence int) (int64, error) {
 	return r.offset, nil
 }
 
+// Read reads up to len(p) bytes into p.
+func (r *ReaderAtSeeker) Read(p []byte) (n int, err error) {
+	n, err = r.ReaderAt.ReadAt(p, r.offset)
+	r.offset += int64(n)
+	return n, err
+}
+
 // _ is a type assertion
-var _ io.Seeker = ((*ReaderAtSeeker)(nil))
+var _ io.ReadSeeker = ((*ReaderAtSeeker)(nil))
