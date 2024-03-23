@@ -6,7 +6,7 @@ import (
 )
 
 // ReaderAtSeeker wraps an io.ReaderAt to provide io.Seeker behavior.
-// It embeds io.ReaderAt, thereby inheriting its methods directly.
+// It embeds io.RederAt, thereby inheriting its methods directly.
 type ReaderAtSeeker struct {
 	io.ReaderAt
 	size   int64 // The size of the file

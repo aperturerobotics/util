@@ -87,7 +87,8 @@ func TestKeyedList(t *testing.T) {
 			value   testKeyedListValue
 			added   bool
 			removed bool
-		}) {
+		},
+		) {
 			key := fmt.Sprintf("%d-%t-%t", expected.key, expected.added, expected.removed)
 			if change, exists := changesMap[key]; !exists || !reflect.DeepEqual(change.value, expected.value) {
 				t.Errorf("change for key %s not as expected: %+v", key, change)
