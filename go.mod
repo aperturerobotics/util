@@ -1,6 +1,6 @@
 module github.com/aperturerobotics/util
 
-go 1.21
+go 1.22
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
@@ -12,4 +12,4 @@ require (
 	google.golang.org/protobuf v1.33.0
 )
 
-require golang.org/x/sys v0.16.0 // indirect
+require golang.org/x/sys v0.18.0 // indirect
