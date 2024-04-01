@@ -10,8 +10,6 @@ import (
 
 	// _ imports protowrap
 	_ "github.com/aperturerobotics/goprotowrap/cmd/protowrap"
-	// _ imports drpc
-	_ "storj.io/drpc/cmd/protoc-gen-go-drpc"
 	// _ imports protoc-gen-go
 	_ "google.golang.org/protobuf/cmd/protoc-gen-go"
 	// _ imports protoc-gen-go-vtproto
@@ -24,4 +22,8 @@ import (
 	_ "github.com/psampaz/go-mod-outdated"
 	// _ imports protoc-gen-starpc
 	_ "github.com/aperturerobotics/starpc/cmd/protoc-gen-go-starpc"
+	// _ imports goimports
+	_ "golang.org/x/tools/cmd/goimports"
+	// _ imports gofumpt
+	_ "mvdan.cc/gofumpt"
 )
