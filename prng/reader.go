@@ -19,6 +19,14 @@ func SourceToReader(src rand.Source) io.Reader {
 	return &randReader{src: src}
 }
 
+// BuildSeededReader builds a random reader seeded by data.
+//
+// NOTE: the reader is not safe for concurrent use.
+func BuildSeededReader(datas ...[]byte) io.Reader {
+	rd := BuildSeededRand(datas...)
+	return SourceToReader(rd)
+}
+
 // Read generates random data and writes it into p.
 // It reads up to len(p) bytes into p and returns the number of bytes read and any error encountered.
 func (r *randReader) Read(p []byte) (n int, err error) {
