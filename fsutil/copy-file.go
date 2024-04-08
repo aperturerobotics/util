@@ -27,10 +27,27 @@ func CopyFile(dst, src string, perm os.FileMode) error {
 	return err
 }
 
+// MoveFile moves the contents from src to dst.
+func MoveFile(dst, src string, perm os.FileMode) error {
+	if err := CopyFile(dst, src, perm); err != nil {
+		return err
+	}
+	if err := os.Remove(src); err != nil {
+		return err
+	}
+	return nil
+}
+
 // CopyFileToDir copies the file to the dir maintaining the filename.
 func CopyFileToDir(dstDir, src string, perm os.FileMode) error {
 	_, srcFilename := filepath.Split(src)
 	return CopyFile(filepath.Join(dstDir, srcFilename), src, perm)
+}
+
+// MoveFileToDir moves the contents from src to dstDir maintaining the filename.
+func MoveFileToDir(dstDir, src string, perm os.FileMode) error {
+	_, srcFilename := filepath.Split(src)
+	return MoveFile(filepath.Join(dstDir, srcFilename), src, perm)
 }
 
 // CopyRecursive copies regular files & directories from src to dest.
