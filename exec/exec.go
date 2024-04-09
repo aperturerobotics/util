@@ -1,9 +1,13 @@
 package exec
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"io"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -44,4 +48,26 @@ func StartAndWait(ctx context.Context, le *logrus.Entry, ecmd *exec.Cmd) error {
 		}
 		return err
 	}
+}
+
+// ExecCmd runs the command and collects the log output.
+func ExecCmd(le *logrus.Entry, cmd *exec.Cmd) error {
+	var stderrBuf bytes.Buffer
+
+	goLogger := le.WriterLevel(logrus.DebugLevel)
+	cmd.Stderr = io.MultiWriter(&stderrBuf, goLogger)
+	le.
+		WithField("work-dir", cmd.Dir).
+		Debugf("running command: %s", cmd.String())
+
+	err := cmd.Run()
+	if err != nil && (strings.HasPrefix(err.Error(), "exit status") || strings.HasPrefix(err.Error(), "err: exit status")) {
+		stderrLines := strings.Split(stderrBuf.String(), "\n")
+		errMsg := stderrLines[len(stderrLines)-1]
+		if len(errMsg) == 0 && len(stderrLines) > 1 {
+			errMsg = stderrLines[len(stderrLines)-2]
+		}
+		err = errors.New(errMsg)
+	}
+	return err
 }
