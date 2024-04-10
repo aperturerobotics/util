@@ -15,7 +15,7 @@ require (
 	github.com/golangci/golangci-lint v1.55.2
 	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/psampaz/go-mod-outdated v0.9.0
-	golang.org/x/tools v0.19.0
+	golang.org/x/tools v0.20.0
 	google.golang.org/protobuf v1.33.0
 	mvdan.cc/gofumpt v0.5.0
 )
@@ -193,11 +193,11 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
+	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230307190834-24139beb5833 // indirect
-	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/mod v0.17.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
