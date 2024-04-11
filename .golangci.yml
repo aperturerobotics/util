@@ -49,6 +49,8 @@ linters-settings:
             desc: Use "gotest.tools/v3/assert" instead
           - pkg: "github.com/stretchr/testify/suite"
             desc: Do not use
+          - pkg: "github.com/aperturerobotics/protobuf-go-lite/vtcompare"
+            desc: Use "github.com/aperturerobotics/protobuf-go-lite/compare" instead
 
   revive:
     rules:

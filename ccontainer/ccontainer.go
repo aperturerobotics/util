@@ -3,8 +3,8 @@ package ccontainer
 import (
 	"context"
 
+	proto "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/vtcompare"
 )
 
 // CContainer is a concurrent container.
@@ -25,8 +25,8 @@ func NewCContainerWithEqual[T comparable](val T, isEqual func(a, b T) bool) *CCo
 }
 
 // NewCContainerVT constructs a CContainer that uses VTEqual to check for equality.
-func NewCContainerVT[T vtcompare.EqualVT[T]](val T) *CContainer[T] {
-	return NewCContainerWithEqual[T](val, vtcompare.CompareEqualVT[T]())
+func NewCContainerVT[T proto.EqualVT[T]](val T) *CContainer[T] {
+	return NewCContainerWithEqual[T](val, proto.CompareEqualVT[T]())
 }
 
 // GetValue returns the immediate value of the container.
