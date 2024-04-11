@@ -2,9 +2,9 @@
 
 SHELL:=bash
 PROTOWRAP=hack/bin/protowrap
-PROTOC_GEN_GO=hack/bin/protoc-gen-go
+PROTOC_GEN_GO=hack/bin/protoc-gen-go-lite
 PROTOC_GEN_STARPC=hack/bin/protoc-gen-go-starpc
-PROTOC_GEN_VTPROTO=hack/bin/protoc-gen-go-vtproto
+PROTOC_GEN_VTPROTO=hack/bin/protoc-gen-go-vtproto-lite
 GOIMPORTS=hack/bin/goimports
 GOFUMPT=hack/bin/gofumpt
 GOLANGCI_LINT=hack/bin/golangci-lint
@@ -23,14 +23,14 @@ vendor:
 $(PROTOC_GEN_GO):
 	cd ./hack; \
 	go build -v \
-		-o ./bin/protoc-gen-go \
-		google.golang.org/protobuf/cmd/protoc-gen-go
+		-o ./bin/protoc-gen-go-lite \
+		github.com/aperturerobotics/protobuf-go-lite/cmd/protoc-gen-go-lite
 
 $(PROTOC_GEN_VTPROTO):
 	cd ./hack; \
 	go build -v \
-		-o ./bin/protoc-gen-go-vtproto \
-		github.com/planetscale/vtprotobuf/cmd/protoc-gen-go-vtproto
+		-o ./bin/protoc-gen-go-lite-vtproto \
+		github.com/aperturerobotics/vtprotobuf-lite/cmd/protoc-gen-go-lite-vtproto
 
 $(PROTOC_GEN_STARPC):
 	cd ./hack; \
@@ -79,9 +79,9 @@ gengo: vendor $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $
 	ln -s $$(pwd) $$(pwd)/vendor/$${PROJECT} ; \
 	$(PROTOWRAP) \
 		-I $$(pwd)/vendor \
-		--go_out=$$(pwd)/vendor \
-		--go-vtproto_out=$$(pwd)/vendor \
-		--go-vtproto_opt=features=marshal+unmarshal+size+equal+clone \
+		--go-lite_out=$$(pwd)/vendor \
+		--go-lite-vtproto_out=$$(pwd)/vendor \
+		--go-lite-vtproto_opt=features=marshal+unmarshal+size+equal+clone \
 		--go-starpc_out=$$(pwd)/vendor \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \

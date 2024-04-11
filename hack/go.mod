@@ -2,21 +2,19 @@ module hack
 
 go 1.22
 
-toolchain go1.22.1
-
 replace github.com/aperturerobotics/util => ../
 
 replace (
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.33.1-0.20240322235918-b46c9358eab6 // aperture
+	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.33.1-0.20240411062030-e36f75e0a3b8 // aperture
 )
 
 require (
+	github.com/aperturerobotics/protobuf-go-lite v0.1.2
+	github.com/aperturerobotics/vtprotobuf-lite v0.1.5
 	github.com/golangci/golangci-lint v1.55.2
-	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/psampaz/go-mod-outdated v0.9.0
 	golang.org/x/tools v0.20.0
-	google.golang.org/protobuf v1.33.0
 	mvdan.cc/gofumpt v0.5.0
 )
 
@@ -199,6 +197,7 @@ require (
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
