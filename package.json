@@ -45,7 +45,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "0.10.0",
+    "@aperturerobotics/ts-common": "0.10.2",
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
     "ts-poet": "6.8.1",
@@ -56,7 +56,7 @@
     "bufferutil": "^4.0.7",
     "long": "^5.2.1",
     "protobufjs": "^7.2.6",
-    "starpc": "^0.29.1",
+    "starpc": "^0.30.1",
     "utf-8-validate": "^6.0.3"
   }
 }
