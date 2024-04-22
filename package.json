@@ -53,6 +53,6 @@
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1.8.0",
-    "starpc": "^0.31.1"
+    "starpc": "^0.31.4"
   }
 }

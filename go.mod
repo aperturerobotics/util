@@ -2,7 +2,7 @@ module github.com/aperturerobotics/util
 
 go 1.22
 
-require github.com/aperturerobotics/protobuf-go-lite v0.4.8 // latest
+require github.com/aperturerobotics/protobuf-go-lite v0.5.0 // latest
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
