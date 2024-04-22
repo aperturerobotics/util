@@ -18,7 +18,7 @@ require (
 
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.1 // master
-	github.com/aperturerobotics/protobuf-go-lite v0.4.1 // latest
+	github.com/aperturerobotics/protobuf-go-lite v0.4.3 // latest
 	github.com/aperturerobotics/starpc v0.29.2-0.20240420210511-e5aa5c8b85e6 // main
 	github.com/aperturerobotics/util v1.16.6
 )
@@ -191,7 +191,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8 // indirect
+	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230307190834-24139beb5833 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
