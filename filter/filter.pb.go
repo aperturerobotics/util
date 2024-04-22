@@ -6,6 +6,8 @@ package filter
 
 import (
 	io "io"
+	strconv "strconv"
+	strings "strings"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
@@ -414,6 +416,53 @@ func (m *StringFilter) SizeVT() (n int) {
 	return n
 }
 
+func (x *StringFilter) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("StringFilter { ")
+	if x.Empty {
+		sb.WriteString(" empty: ")
+		sb.WriteString(strconv.FormatBool(x.Empty))
+	}
+	if x.NotEmpty {
+		sb.WriteString(" not_empty: ")
+		sb.WriteString(strconv.FormatBool(x.NotEmpty))
+	}
+	if x.Value != "" {
+		sb.WriteString(" value: ")
+		sb.WriteString(strconv.Quote(x.Value))
+	}
+	if len(x.Values) > 0 {
+		sb.WriteString(" values: [")
+		for i, v := range x.Values {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.Re != "" {
+		sb.WriteString(" re: ")
+		sb.WriteString(strconv.Quote(x.Re))
+	}
+	if x.HasPrefix != "" {
+		sb.WriteString(" has_prefix: ")
+		sb.WriteString(strconv.Quote(x.HasPrefix))
+	}
+	if x.HasSuffix != "" {
+		sb.WriteString(" has_suffix: ")
+		sb.WriteString(strconv.Quote(x.HasSuffix))
+	}
+	if x.Contains != "" {
+		sb.WriteString(" contains: ")
+		sb.WriteString(strconv.Quote(x.Contains))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+func (x *StringFilter) String() string {
+	return x.MarshalProtoText()
+}
 func (m *StringFilter) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

@@ -9,6 +9,7 @@ import (
 	io "io"
 	math "math"
 	strconv "strconv"
+	strings "strings"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
@@ -750,6 +751,72 @@ func (m *Constant) SizeVT() (n int) {
 	return n
 }
 
+func (x BackoffKind) MarshalProtoText() string {
+	return x.String()
+}
+func (x *Backoff) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("Backoff { ")
+	if x.BackoffKind != 0 {
+		sb.WriteString(" backoff_kind: ")
+		sb.WriteString(BackoffKind(x.BackoffKind).String())
+	}
+	if x.Exponential != nil {
+		sb.WriteString(" exponential: ")
+		sb.WriteString(x.Exponential.MarshalProtoText())
+	}
+	if x.Constant != nil {
+		sb.WriteString(" constant: ")
+		sb.WriteString(x.Constant.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+func (x *Backoff) String() string {
+	return x.MarshalProtoText()
+}
+func (x *Exponential) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("Exponential { ")
+	if x.InitialInterval != 0 {
+		sb.WriteString(" initial_interval: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.InitialInterval), 10))
+	}
+	if x.Multiplier != 0 {
+		sb.WriteString(" multiplier: ")
+		sb.WriteString(strconv.FormatFloat(float64(x.Multiplier), 'g', -1, 32))
+	}
+	if x.MaxInterval != 0 {
+		sb.WriteString(" max_interval: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.MaxInterval), 10))
+	}
+	if x.RandomizationFactor != 0 {
+		sb.WriteString(" randomization_factor: ")
+		sb.WriteString(strconv.FormatFloat(float64(x.RandomizationFactor), 'g', -1, 32))
+	}
+	if x.MaxElapsedTime != 0 {
+		sb.WriteString(" max_elapsed_time: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.MaxElapsedTime), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+func (x *Exponential) String() string {
+	return x.MarshalProtoText()
+}
+func (x *Constant) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("Constant { ")
+	if x.Interval != 0 {
+		sb.WriteString(" interval: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Interval), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+func (x *Constant) String() string {
+	return x.MarshalProtoText()
+}
 func (m *Backoff) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
