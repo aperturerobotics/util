@@ -154,7 +154,7 @@
     "@bufbuild/protobuf" "^1.9.0"
     "@bufbuild/protoplugin" "1.9.0"
 
-"@bufbuild/protoplugin@1.9.0":
+"@bufbuild/protoplugin@1.9.0", "@bufbuild/protoplugin@^1.9.0":
   version "1.9.0"
   resolved "https://registry.yarnpkg.com/@bufbuild/protoplugin/-/protoplugin-1.9.0.tgz#a7f3ef12872c392abb38ba6de7639c5a633c0ec3"
   integrity sha512-/mxMiGs5h78RUHT7v4+mv0Wt0gyRf/SOS5PLzKEg2sclEAlFPbXfZ8HjlvxJpXZP/YpP3HvsW/mil3E69G0mXg==
@@ -314,9 +314,9 @@
     multiformats "^13.1.0"
 
 "@libp2p/utils@^5.2.5":
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/@libp2p/utils/-/utils-5.3.0.tgz#02abf3e78d57d944938b16c9f74352253ef4730f"
-  integrity sha512-SlkbTHD0ze0iga9g9ibJo0U3bLLFwgwWB1zuGrg6SVNf0IcIAnTeuOKpOIJ8KEtggfwAsCooTVXktGQs+mX0ng==
+  version "5.3.1"
+  resolved "https://registry.yarnpkg.com/@libp2p/utils/-/utils-5.3.1.tgz#1d3ff7e494f78503f33e1c8df4ad4a13209d594b"
+  integrity sha512-FdGzRU50PJLYSEOmVXqqtq27yjUVXkU4QNRZzMVuXF9L/sKgSC2oXwj0Satc9fHx5tG3MCX1ZOSAmYEIl2fu+w==
   dependencies:
     "@chainsafe/is-ip" "^2.0.2"
     "@libp2p/interface" "^1.2.0"
@@ -1777,13 +1777,12 @@ starpc@^0.31.1:
     ws "^8.15.1"
 
 starpc@^0.31.4:
-  version "0.31.4"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.31.4.tgz#c1717be01406b6d57847588ae863f2fa1064d91a"
-  integrity sha512-WZ5JyEpSekBwVPbUPES4XGwcBxEispZTlNW2iAoFSAyksbQwPVFEOATa1YTTBkbGOKeyUcpleHkHcrwLUvRBUg==
+  version "0.31.5"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.31.5.tgz#bca9886d5455cbac7d02b0230ba964a94bcc8dd3"
+  integrity sha512-dQ0U1ctpKd08bnGnboQ7UD1f4IfWXmhWzBU+hHkdGEeD725ra80RPS8vAQLhL8ziArMNbeoaiO1QjakoJ4ETFw==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
-    "@bufbuild/protobuf" "^1.8.0"
-    "@bufbuild/protoplugin" "^1.8.0"
+    "@bufbuild/protoplugin" "^1.9.0"
     "@chainsafe/libp2p-yamux" "^6.0.2"
     "@libp2p/interface" "^1.1.3"
     "@libp2p/logger" "^4.0.6"
