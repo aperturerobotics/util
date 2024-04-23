@@ -45,14 +45,14 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "0.11.0",
-    "@bufbuild/protoc-gen-es": "^1.8.0",
+    "@aperturerobotics/ts-common": "0.11.1",
+    "@bufbuild/protoc-gen-es": "^1.9.0",
     "depcheck": "^1.4.7",
     "prettier": "^3.2.5",
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^1.8.0",
+    "@bufbuild/protobuf": "^1.9.0",
     "starpc": "^0.31.4"
   }
 }

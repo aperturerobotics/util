@@ -49,13 +49,15 @@ linters-settings:
             desc: Use "gotest.tools/v3/assert" instead
           - pkg: "github.com/stretchr/testify/suite"
             desc: Do not use
-          - pkg: "github.com/aperturerobotics/protobuf-go-lite/vtcompare"
-            desc: Use "github.com/aperturerobotics/protobuf-go-lite/compare" instead
 
   revive:
     rules:
       - name: package-comments
         disabled: true
+
+  gosec:
+    excludes:
+      - G306 # Allow WriteFile permissions to be 0644.
 
 issues:
   # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
