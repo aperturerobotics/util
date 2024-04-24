@@ -21,7 +21,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.json --noEmit false --module ES6 --target es2022 --outDir ./dist/",
     "check": "npm run typecheck",
-    "deps": "depcheck --ignore-patterns=.eslintrc.js,package.json --ignores depcheck,prettier,typescript,starpc,@bufbuild/protoc-gen-es,@aperturerobotics/ts-common,@go/github.com",
+    "deps": "depcheck --ignore-patterns=.eslintrc.js,package.json --ignores depcheck,prettier,typescript,starpc,@bufbuild/protoc-gen-es,@aperturerobotics/ts-common,@go/github.com,rimraf,@aptre/common",
     "typecheck": "tsc --noEmit",
     "codegen": "npm run gen",
     "ci": "npm run build && npm run lint:js && npm run lint:go",
@@ -37,7 +37,7 @@
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
     "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.js ./",
-    "prepare": "go mod vendor",
+    "prepare": "go mod vendor && rimraf ./.tools",
     "precommit": "npm run format"
   },
   "prettier": {
@@ -49,10 +49,11 @@
     "@bufbuild/protoc-gen-es": "^1.9.0",
     "depcheck": "^1.4.7",
     "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
     "typescript": "^5.1.6"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1.9.0",
-    "starpc": "^0.31.4"
+    "starpc": "^0.31.6"
   }
 }
