@@ -52,8 +52,8 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "@aptre/protobuf-es-lite": "^0.2.3",
+    "@aptre/protobuf-es-lite": "^0.2.5",
     "@bufbuild/protobuf": "^1.9.0",
-    "starpc": "^0.31.7"
+    "starpc": "^0.31.9"
   }
 }

@@ -3,6 +3,7 @@
 /* eslint-disable */
 
 import {
+  createEnumType,
   createMessageType,
   Message,
   MessageType,
@@ -39,12 +40,12 @@ export enum BackoffKind {
   BackoffKind_CONSTANT = 2,
 }
 
-// BackoffKind_Name maps the enum names to the values.
-export const BackoffKind_Name = {
-  BackoffKind_UNKNOWN: BackoffKind.BackoffKind_UNKNOWN,
-  BackoffKind_EXPONENTIAL: BackoffKind.BackoffKind_EXPONENTIAL,
-  BackoffKind_CONSTANT: BackoffKind.BackoffKind_CONSTANT,
-}
+// BackoffKind_Enum is the enum type for BackoffKind.
+export const BackoffKind_Enum = createEnumType('backoff.BackoffKind', [
+  { no: 0, name: 'BackoffKind_UNKNOWN' },
+  { no: 1, name: 'BackoffKind_EXPONENTIAL' },
+  { no: 2, name: 'BackoffKind_CONSTANT' },
+])
 
 /**
  * Exponential is the exponential arguments.
@@ -178,7 +179,7 @@ export interface Backoff extends Message<Backoff> {
 export const Backoff: MessageType<Backoff> = createMessageType({
   typeName: 'backoff.Backoff',
   fields: [
-    { no: 1, name: 'backoff_kind', kind: 'enum', T: BackoffKind },
+    { no: 1, name: 'backoff_kind', kind: 'enum', T: BackoffKind_Enum },
     { no: 2, name: 'exponential', kind: 'message', T: Exponential },
     { no: 3, name: 'constant', kind: 'message', T: Constant },
   ] as readonly PartialFieldInfo[],
