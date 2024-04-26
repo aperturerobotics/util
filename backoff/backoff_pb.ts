@@ -180,8 +180,8 @@ export const Backoff: MessageType<Backoff> = createMessageType({
   typeName: 'backoff.Backoff',
   fields: [
     { no: 1, name: 'backoff_kind', kind: 'enum', T: BackoffKind_Enum },
-    { no: 2, name: 'exponential', kind: 'message', T: Exponential },
-    { no: 3, name: 'constant', kind: 'message', T: Constant },
+    { no: 2, name: 'exponential', kind: 'message', T: () => Exponential },
+    { no: 3, name: 'constant', kind: 'message', T: () => Constant },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
