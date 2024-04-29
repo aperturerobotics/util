@@ -2,12 +2,8 @@
 // @generated from file github.com/aperturerobotics/util/filter/filter.proto (package filter, syntax proto3)
 /* eslint-disable */
 
-import {
-  createMessageType,
-  Message,
-  MessageType,
-  PartialFieldInfo,
-} from '@aptre/protobuf-es-lite'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'filter'
 
@@ -18,7 +14,7 @@ export const protobufPackage = 'filter'
  *
  * @generated from message filter.StringFilter
  */
-export interface StringFilter extends Message<StringFilter> {
+export type StringFilter = Message<{
   /**
    * Empty matches the value against the empty value.
    *
@@ -68,7 +64,7 @@ export interface StringFilter extends Message<StringFilter> {
    * @generated from field: string contains = 8;
    */
   contains?: string
-}
+}>
 
 export const StringFilter: MessageType<StringFilter> = createMessageType({
   typeName: 'filter.StringFilter',

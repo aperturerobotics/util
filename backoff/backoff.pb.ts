@@ -2,12 +2,11 @@
 // @generated from file github.com/aperturerobotics/util/backoff/backoff.proto (package backoff, syntax proto3)
 /* eslint-disable */
 
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
   Message,
-  MessageType,
-  PartialFieldInfo,
 } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'backoff'
@@ -52,7 +51,7 @@ export const BackoffKind_Enum = createEnumType('backoff.BackoffKind', [
  *
  * @generated from message backoff.Exponential
  */
-export interface Exponential extends Message<Exponential> {
+export type Exponential = Message<{
   /**
    * InitialInterval is the initial interval in milliseconds.
    * Default: 800ms.
@@ -93,7 +92,7 @@ export interface Exponential extends Message<Exponential> {
    * @generated from field: uint32 max_elapsed_time = 5;
    */
   maxElapsedTime?: number
-}
+}>
 
 export const Exponential: MessageType<Exponential> = createMessageType({
   typeName: 'backoff.Exponential',
@@ -132,7 +131,7 @@ export const Exponential: MessageType<Exponential> = createMessageType({
  *
  * @generated from message backoff.Constant
  */
-export interface Constant extends Message<Constant> {
+export type Constant = Message<{
   /**
    * Interval is the timing to back off, in milliseconds.
    * Defaults to 5 seconds.
@@ -140,7 +139,7 @@ export interface Constant extends Message<Constant> {
    * @generated from field: uint32 interval = 1;
    */
   interval?: number
-}
+}>
 
 export const Constant: MessageType<Constant> = createMessageType({
   typeName: 'backoff.Constant',
@@ -155,7 +154,7 @@ export const Constant: MessageType<Constant> = createMessageType({
  *
  * @generated from message backoff.Backoff
  */
-export interface Backoff extends Message<Backoff> {
+export type Backoff = Message<{
   /**
    * BackoffKind is the kind of backoff.
    *
@@ -174,7 +173,7 @@ export interface Backoff extends Message<Backoff> {
    * @generated from field: backoff.Constant constant = 3;
    */
   constant?: Constant
-}
+}>
 
 export const Backoff: MessageType<Backoff> = createMessageType({
   typeName: 'backoff.Backoff',
