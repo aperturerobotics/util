@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'filter'
 
@@ -66,23 +66,24 @@ export type StringFilter = Message<{
   contains?: string
 }>
 
+// StringFilter contains the message type declaration for StringFilter.
 export const StringFilter: MessageType<StringFilter> = createMessageType({
   typeName: 'filter.StringFilter',
   fields: [
-    { no: 1, name: 'empty', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 2, name: 'not_empty', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 3, name: 'value', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'empty', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 2, name: 'not_empty', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'value', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 4,
       name: 'values',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    { no: 5, name: 're', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: 'has_prefix', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: 'has_suffix', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 8, name: 'contains', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 're', kind: 'scalar', T: ScalarType.STRING },
+    { no: 6, name: 'has_prefix', kind: 'scalar', T: ScalarType.STRING },
+    { no: 7, name: 'has_suffix', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'contains', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

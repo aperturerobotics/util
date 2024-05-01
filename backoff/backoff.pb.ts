@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'backoff'
@@ -94,34 +95,20 @@ export type Exponential = Message<{
   maxElapsedTime?: number
 }>
 
+// Exponential contains the message type declaration for Exponential.
 export const Exponential: MessageType<Exponential> = createMessageType({
   typeName: 'backoff.Exponential',
   fields: [
-    {
-      no: 1,
-      name: 'initial_interval',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
-    { no: 2, name: 'multiplier', kind: 'scalar', T: 2 /* ScalarType.FLOAT */ },
-    {
-      no: 3,
-      name: 'max_interval',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
+    { no: 1, name: 'initial_interval', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 2, name: 'multiplier', kind: 'scalar', T: ScalarType.FLOAT },
+    { no: 3, name: 'max_interval', kind: 'scalar', T: ScalarType.UINT32 },
     {
       no: 4,
       name: 'randomization_factor',
       kind: 'scalar',
-      T: 2 /* ScalarType.FLOAT */,
+      T: ScalarType.FLOAT,
     },
-    {
-      no: 5,
-      name: 'max_elapsed_time',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
+    { no: 5, name: 'max_elapsed_time', kind: 'scalar', T: ScalarType.UINT32 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -141,10 +128,11 @@ export type Constant = Message<{
   interval?: number
 }>
 
+// Constant contains the message type declaration for Constant.
 export const Constant: MessageType<Constant> = createMessageType({
   typeName: 'backoff.Constant',
   fields: [
-    { no: 1, name: 'interval', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+    { no: 1, name: 'interval', kind: 'scalar', T: ScalarType.UINT32 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -175,6 +163,7 @@ export type Backoff = Message<{
   constant?: Constant
 }>
 
+// Backoff contains the message type declaration for Backoff.
 export const Backoff: MessageType<Backoff> = createMessageType({
   typeName: 'backoff.Backoff',
   fields: [
