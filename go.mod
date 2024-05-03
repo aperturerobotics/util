@@ -3,7 +3,7 @@ module github.com/aperturerobotics/util
 go 1.22
 
 require (
-	github.com/aperturerobotics/common v0.15.1 // latest
+	github.com/aperturerobotics/common v0.15.2 // latest
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.6.1 // latest
 )
