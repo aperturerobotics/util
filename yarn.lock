@@ -3,18 +3,18 @@
 
 
 "@aptre/common@^0.15.2":
-  version "0.15.2"
-  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.15.2.tgz#e2ff139b6a7cd43adef734082badba7c93eea78e"
-  integrity sha512-3kQCMUYesu8Y53bBFjdphl6NFRtg+3/NUueWcF5O8Esh7wgwT1iBC2hWzDmEkJYt3TTT/mZTQBtwyR8bEUXJ7w==
+  version "0.15.5"
+  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.15.5.tgz#291816522daf5f84d2064bb4430f9a3525c9c9b6"
+  integrity sha512-zOuHMenwKXkOtntEdTPgUG7IH5XXdQGAdkVh7X0aKeR0SrQEqzi2gSX+s3dw8x503GwR7ryFC3djkDzn7WJvdA==
   dependencies:
     "@aptre/protobuf-es-lite" "^0.4.3"
     "@typescript-eslint/eslint-plugin" "^7.8.0"
     "@typescript-eslint/parser" "^7.8.0"
-    eslint "^9.1.1"
+    eslint "^9.2.0"
     eslint-config-prettier "^9.0.0"
     eslint-plugin-react-hooks "^4.6.1"
     eslint-plugin-unused-imports "^3.2.0"
-    starpc "^0.32.0"
+    starpc "^0.32.3"
 
 "@aptre/it-ws@^1.0.0":
   version "1.0.0"
@@ -27,7 +27,7 @@
     uint8arrays "^5.0.0"
     ws "^8.4.0"
 
-"@aptre/protobuf-es-lite@^0.4.3":
+"@aptre/protobuf-es-lite@0.4.3", "@aptre/protobuf-es-lite@^0.4.3":
   version "0.4.3"
   resolved "https://registry.yarnpkg.com/@aptre/protobuf-es-lite/-/protobuf-es-lite-0.4.3.tgz#1839154a24ac19fb9f4f3bdb4fb0eccd9abdfebc"
   integrity sha512-qiWodq4qZ6hAbgzMKHCGjaMoQr/Zj0gn8MGkZq6Pf9T93zEuafl0EijDblqRawmU7Ow9Ogzg/kq6G5bUWGvcpQ==
@@ -191,10 +191,10 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@eslint/js@9.1.1":
-  version "9.1.1"
-  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.1.1.tgz#eb0f82461d12779bbafc1b5045cde3143d350a8a"
-  integrity sha512-5WoDz3Y19Bg2BnErkZTp0en+c/i9PvgFS7MBe1+m60HjFr0hrphlAGp4yzI7pxpt4xShln4ZyYp4neJm8hmOkQ==
+"@eslint/js@9.2.0":
+  version "9.2.0"
+  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.2.0.tgz#b0a9123e8e91a3d9a2eed3a04a6ed44fdab639aa"
+  integrity sha512-ESiIudvhoYni+MdsI8oD7skpprZ89qKocwRM2KEvhhBJ9nl5MRh7BXU5GTod7Mdygq+AUl+QzId6iWJKR/wABA==
 
 "@humanwhocodes/config-array@^0.13.0":
   version "0.13.0"
@@ -216,9 +216,9 @@
   integrity sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==
 
 "@humanwhocodes/retry@^0.2.3":
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/@humanwhocodes/retry/-/retry-0.2.3.tgz#c9aa036d1afa643f1250e83150f39efb3a15a631"
-  integrity sha512-X38nUbachlb01YMlvPFojKoiXq+LzZvuSce70KPMPdeM1Rj03k4dR7lDslhbqXn3Ang4EU3+EAmwEAsbrjHW3g==
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/@humanwhocodes/retry/-/retry-0.2.4.tgz#4f3059423823bd8176132ceea9447dee101dfac1"
+  integrity sha512-Ttl/jHpxfS3st5sxwICYfk4pOH0WrLI1SpW283GgQL7sCWU7EHIOhX4b4fkIxr3tkfzwg8+FNojtzsIEE7Ecgg==
 
 "@isaacs/cliui@^8.0.2":
   version "8.0.2"
@@ -433,9 +433,9 @@
   integrity sha512-QvlqvYtGBYIDeO8dFdY4djkRubcrc+yTJtBc7n8VZPlJDUS/00A+PssbvERM8f9bYRmcaSEHPZgZojeQj7kzAA==
 
 "@types/node@*":
-  version "20.12.8"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.12.8.tgz#35897bf2bfe3469847ab04634636de09552e8256"
-  integrity sha512-NU0rJLJnshZWdE/097cdCBbyW1h4hEg0xpovcoAQYHl8dnEyp/NAOiE45pvc+Bd1Dt+2r94v2eGFpQJ4R7g+2w==
+  version "20.12.11"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.12.11.tgz#c4ef00d3507000d17690643278a60dc55a9dc9be"
+  integrity sha512-vDg9PZ/zi+Nqp6boSOT7plNuthRugEKixDv5sFTIpkE89MmNtEArAShI4mxuX2+UrLEe9pxC1vm2cjm9YlWbJw==
   dependencies:
     undici-types "~5.26.4"
 
@@ -963,15 +963,15 @@ eslint-visitor-keys@^4.0.0:
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-4.0.0.tgz#e3adc021aa038a2a8e0b2f8b0ce8f66b9483b1fb"
   integrity sha512-OtIRv/2GyiF6o/d8K7MYKKbXrOUBIK6SfkIRM4Z0dY3w+LiQ0vy3F57m0Z71bjbyeiWFiHJ8brqnmE6H6/jEuw==
 
-eslint@^9.1.1:
-  version "9.1.1"
-  resolved "https://registry.yarnpkg.com/eslint/-/eslint-9.1.1.tgz#39ec657ccd12813cb4a1dab2f9229dcc6e468271"
-  integrity sha512-b4cRQ0BeZcSEzPpY2PjFY70VbO32K7BStTGtBsnIGdTSEEQzBi8hPBcGQmTG2zUvFr9uLe0TK42bw8YszuHEqg==
+eslint@^9.2.0:
+  version "9.2.0"
+  resolved "https://registry.yarnpkg.com/eslint/-/eslint-9.2.0.tgz#0700ebc99528753315d78090876911d3cdbf19fe"
+  integrity sha512-0n/I88vZpCOzO+PQpt0lbsqmn9AsnsJAQseIqhZFI8ibQT0U1AkEKRxA3EVMos0BoHSXDQvCXY25TUjB5tr8Og==
   dependencies:
     "@eslint-community/eslint-utils" "^4.2.0"
     "@eslint-community/regexpp" "^4.6.1"
     "@eslint/eslintrc" "^3.0.2"
-    "@eslint/js" "9.1.1"
+    "@eslint/js" "9.2.0"
     "@humanwhocodes/config-array" "^0.13.0"
     "@humanwhocodes/module-importer" "^1.0.1"
     "@humanwhocodes/retry" "^0.2.3"
@@ -1854,12 +1854,17 @@ semver-compare@^1.0.0:
   resolved "https://registry.yarnpkg.com/semver-compare/-/semver-compare-1.0.0.tgz#0dee216a1c941ab37e9efb1788f6afc5ff5537fc"
   integrity sha512-YM3/ITh2MJ5MtzaM429anh+x2jiLVjqILF4m4oyQB18W7Ggea7BfqdH/wGMK7dDiMghv/6WG7znWMwUDzJiXow==
 
-semver@^7.5.4, semver@^7.6.0:
+semver@^7.5.4:
   version "7.6.0"
   resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.0.tgz#1a46a4db4bffcccd97b743b5005c8325f23d4e2d"
   integrity sha512-EnwXhrlwXMk9gKu5/flx5sv/an57AkRplG3hTK68W7FRDN+k+OWBj65M7719OkA82XLBxrcX0KSHj+X5COhOVg==
   dependencies:
     lru-cache "^6.0.0"
+
+semver@^7.6.0:
+  version "7.6.1"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.1.tgz#60bfe090bf907a25aa8119a72b9f90ef7ca281b2"
+  integrity sha512-f/vbBsu+fOiYt+lmwZV0rVwJScl46HppnOA1ZvIuBWKOTlllpyJ3bfVax76/OrhCH38dyxoDIA8K7uB963IYgA==
 
 shebang-command@^2.0.0:
   version "2.0.0"
@@ -1893,10 +1898,10 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
-starpc@^0.32.0, starpc@^0.32.1:
-  version "0.32.1"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.1.tgz#612852d7955c1a59d03a0ea699359c26da8f4a8e"
-  integrity sha512-iHYhdXgiRQVhRMx396V/ynhex1hf7EyRGFyCUl+cvZNtOJeqMzduNkGXFLXVc9jr73MiBIqgYDAwTLRVt26d+Q==
+starpc@^0.32.1, starpc@^0.32.3:
+  version "0.32.4"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.4.tgz#5973a277d2505b5aef648280fddc5d3c29166b00"
+  integrity sha512-l9+GiC1W6zegdIJPw2g+pM2dyn99zc5qQxkB+0Ww0K13PbKdeprGUvz3nbutQJE8Mtc42kLRvdnJAOu3ZWl0Wg==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@aptre/protobuf-es-lite" "^0.4.3"
