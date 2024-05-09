@@ -2,7 +2,6 @@ package promise
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 )
@@ -11,12 +10,11 @@ import (
 //
 // The zero-value of this struct is valid.
 type PromiseContainer[T any] struct {
-	// mtx guards below fields
-	mtx sync.Mutex
+	// bcast is broadcasted when the promise is replaced.
+	// guards below fields
+	bcast broadcast.Broadcast
 	// promise contains the current promise.
 	promise PromiseLike[T]
-	// replaced is broadcasted when the promise is replaced.
-	replaced broadcast.Broadcast
 }
 
 // NewPromiseContainer constructs a new PromiseContainer.
@@ -28,57 +26,60 @@ func NewPromiseContainer[T any]() *PromiseContainer[T] {
 // channel that is closed when the Promise is replaced.
 //
 // Note that promise may be nil.
-func (c *PromiseContainer[T]) GetPromise() (PromiseLike[T], <-chan struct{}) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	return c.promise, c.replaced.GetWaitCh()
+func (c *PromiseContainer[T]) GetPromise() (prom PromiseLike[T], waitCh <-chan struct{}) {
+	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		prom, waitCh = c.promise, getWaitCh()
+	})
+	return
 }
 
 // SetPromise updates the Promise contained in the PromiseContainer.
 // Note: this does not do anything with the old promise.
 func (c *PromiseContainer[T]) SetPromise(p PromiseLike[T]) {
-	c.mtx.Lock()
-	c.promise = p
-	c.replaced.Broadcast()
-	c.mtx.Unlock()
+	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if c.promise != p {
+			c.promise = p
+			broadcast()
+		}
+	})
 }
 
 // SetResult sets the result of the promise.
 //
 // Overwrites the existing promise with a new promise.
 func (p *PromiseContainer[T]) SetResult(val T, err error) bool {
-	p.mtx.Lock()
-	p.promise = NewPromiseWithResult(val, err)
-	p.replaced.Broadcast()
-	p.mtx.Unlock()
+	prom := NewPromiseWithResult(val, err)
+	p.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		p.promise = prom
+		broadcast()
+	})
 	return true
 }
 
 // Await waits for the result to be set or for ctx to be canceled.
 func (p *PromiseContainer[T]) Await(ctx context.Context) (val T, err error) {
 	for {
-		p.mtx.Lock()
-		replaceCh := p.replaced.GetWaitCh()
-		promise := p.promise
-		p.mtx.Unlock()
-		if promise == nil {
+		var waitCh <-chan struct{}
+		var prom PromiseLike[T]
+		p.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			prom, waitCh = p.promise, getWaitCh()
+		})
+		if prom == nil {
 			select {
 			case <-ctx.Done():
 				return val, context.Canceled
-			case <-replaceCh:
+			case <-waitCh:
 				continue
 			}
 		}
 
-		val, valErr := promise.AwaitWithCancelCh(ctx, replaceCh)
+		val, valErr := prom.AwaitWithCancelCh(ctx, waitCh)
 		if valErr == nil {
 			return val, nil
 		}
 		if valErr == context.Canceled {
-			select {
-			case <-ctx.Done():
+			if ctx.Err() != nil {
 				return val, context.Canceled
-			default:
 			}
 		} else {
 			return val, valErr
@@ -89,11 +90,12 @@ func (p *PromiseContainer[T]) Await(ctx context.Context) (val T, err error) {
 // AwaitWithErrCh waits for the result to be set or for an error to be pushed to the channel.
 func (p *PromiseContainer[T]) AwaitWithErrCh(ctx context.Context, errCh <-chan error) (val T, err error) {
 	for {
-		p.mtx.Lock()
-		replaceCh := p.replaced.GetWaitCh()
-		promise := p.promise
-		p.mtx.Unlock()
-		if promise == nil {
+		var waitCh <-chan struct{}
+		var prom PromiseLike[T]
+		p.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			prom, waitCh = p.promise, getWaitCh()
+		})
+		if prom == nil {
 			select {
 			case <-ctx.Done():
 				return val, context.Canceled
@@ -104,20 +106,18 @@ func (p *PromiseContainer[T]) AwaitWithErrCh(ctx context.Context, errCh <-chan e
 					return val, context.Canceled
 				}
 				return val, err
-			case <-replaceCh:
+			case <-waitCh:
+				continue
 			}
-			continue
 		}
 
-		val, valErr := promise.AwaitWithCancelCh(ctx, replaceCh)
+		val, valErr := prom.AwaitWithCancelCh(ctx, waitCh)
 		if valErr == nil {
 			return val, nil
 		}
 		if valErr == context.Canceled {
-			select {
-			case <-ctx.Done():
+			if ctx.Err() != nil {
 				return val, context.Canceled
-			default:
 			}
 		} else {
 			return val, valErr
@@ -134,30 +134,29 @@ func (p *PromiseContainer[T]) AwaitWithErrCh(ctx context.Context, errCh <-chan e
 // Otherwise waits for a value or an error to be set to the promise.
 func (p *PromiseContainer[T]) AwaitWithCancelCh(ctx context.Context, cancelCh <-chan struct{}) (val T, err error) {
 	for {
-		p.mtx.Lock()
-		replaceCh := p.replaced.GetWaitCh()
-		promise := p.promise
-		p.mtx.Unlock()
-		if promise == nil {
+		var waitCh <-chan struct{}
+		var prom PromiseLike[T]
+		p.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			prom, waitCh = p.promise, getWaitCh()
+		})
+		if prom == nil {
 			select {
 			case <-ctx.Done():
 				return val, context.Canceled
 			case <-cancelCh:
-				return val, err
-			case <-replaceCh:
+				return val, nil
+			case <-waitCh:
+				continue
 			}
-			continue
 		}
 
-		val, valErr := promise.AwaitWithCancelCh(ctx, replaceCh)
+		val, valErr := prom.AwaitWithCancelCh(ctx, waitCh)
 		if valErr == nil {
 			return val, nil
 		}
 		if valErr == context.Canceled {
-			select {
-			case <-ctx.Done():
+			if ctx.Err() != nil {
 				return val, context.Canceled
-			default:
 			}
 		} else {
 			return val, valErr
