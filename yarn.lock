@@ -1876,9 +1876,9 @@ sprintf-js@~1.0.2:
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
 starpc@^0.32.1, starpc@^0.32.9:
-  version "0.32.9"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.9.tgz#977587abfb0791001005c270c6afad1dbb4ab285"
-  integrity sha512-GSonUa4mpoxVF/UHw8Sp2f/MsyV54pf4TRYuD40YenpX3o2Qs0s0gkb9JgasDQUoisQ4Ija1uuYZ6LQd9ZG4OA==
+  version "0.32.10"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.10.tgz#c3b7daf37a1d76b994100024e5c6e0d87eaca6f8"
+  integrity sha512-21f92G+4gHln9H8Ho2qpkQcxVP6yZoWysfbA2iVnNuBmSQTNRTcmIRD/6EMUoQKR+7tvXxoidsUtSBSJtEZLBg==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@aptre/protobuf-es-lite" "^0.4.4"
