@@ -41,6 +41,7 @@ func StartAndWait(ctx context.Context, le *logrus.Entry, ecmd *exec.Cmd) error {
 		<-outErr
 		return ctx.Err()
 	case err := <-outErr:
+		le := le.WithField("exit-code", ecmd.ProcessState.ExitCode())
 		if err != nil {
 			le.WithError(err).Debug("process exited with error")
 		} else {
