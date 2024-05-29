@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 
@@ -52,7 +51,7 @@ export const BackoffKind_Enum = createEnumType('backoff.BackoffKind', [
  *
  * @generated from message backoff.Exponential
  */
-export type Exponential = Message<{
+export interface Exponential {
   /**
    * InitialInterval is the initial interval in milliseconds.
    * Default: 800ms.
@@ -93,7 +92,7 @@ export type Exponential = Message<{
    * @generated from field: uint32 max_elapsed_time = 5;
    */
   maxElapsedTime?: number
-}>
+}
 
 // Exponential contains the message type declaration for Exponential.
 export const Exponential: MessageType<Exponential> = createMessageType({
@@ -118,7 +117,7 @@ export const Exponential: MessageType<Exponential> = createMessageType({
  *
  * @generated from message backoff.Constant
  */
-export type Constant = Message<{
+export interface Constant {
   /**
    * Interval is the timing to back off, in milliseconds.
    * Defaults to 5 seconds.
@@ -126,7 +125,7 @@ export type Constant = Message<{
    * @generated from field: uint32 interval = 1;
    */
   interval?: number
-}>
+}
 
 // Constant contains the message type declaration for Constant.
 export const Constant: MessageType<Constant> = createMessageType({
@@ -142,7 +141,7 @@ export const Constant: MessageType<Constant> = createMessageType({
  *
  * @generated from message backoff.Backoff
  */
-export type Backoff = Message<{
+export interface Backoff {
   /**
    * BackoffKind is the kind of backoff.
    *
@@ -161,7 +160,7 @@ export type Backoff = Message<{
    * @generated from field: backoff.Constant constant = 3;
    */
   constant?: Constant
-}>
+}
 
 // Backoff contains the message type declaration for Backoff.
 export const Backoff: MessageType<Backoff> = createMessageType({

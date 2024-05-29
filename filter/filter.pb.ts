@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'filter'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'filter'
  *
  * @generated from message filter.StringFilter
  */
-export type StringFilter = Message<{
+export interface StringFilter {
   /**
    * Empty matches the value against the empty value.
    *
@@ -64,7 +64,7 @@ export type StringFilter = Message<{
    * @generated from field: string contains = 8;
    */
   contains?: string
-}>
+}
 
 // StringFilter contains the message type declaration for StringFilter.
 export const StringFilter: MessageType<StringFilter> = createMessageType({
