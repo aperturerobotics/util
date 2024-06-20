@@ -34,12 +34,12 @@ func TestMutex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Lock failed: %v", err)
 	}
-	release2, ok := m.TryLock()
+	_, ok := m.TryLock()
 	if ok {
 		t.Fatalf("TryLock succeeded with mutex locked")
 	}
 	release()
-	release2, ok = m.TryLock()
+	release2, ok := m.TryLock()
 	if !ok {
 		t.Fatalf("TryLock failed with mutex unlocked")
 	}
@@ -96,7 +96,7 @@ func init() {
 func BenchmarkMutexUncontended(b *testing.B) {
 	type PaddedMutex struct {
 		Mutex
-		pad [128]uint8
+		pad [128]uint8 //nolint:unused
 	}
 	b.RunParallel(func(pb *testing.PB) {
 		var mu PaddedMutex
