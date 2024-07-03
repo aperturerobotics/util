@@ -70,8 +70,9 @@ func NewKeyed[K comparable, V any](
 func NewKeyedWithLogger[K comparable, V any](
 	ctorCb func(key K) (Routine, V),
 	le *logrus.Entry,
+	opts ...Option[K, V],
 ) *Keyed[K, V] {
-	return NewKeyed(ctorCb, WithExitLogger[K, V](le))
+	return NewKeyed(ctorCb, append([]Option[K, V]{WithExitLogger[K, V](le)}, opts...)...)
 }
 
 // SetContext updates the root context, restarting all running routines.

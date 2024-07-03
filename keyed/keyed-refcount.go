@@ -72,9 +72,10 @@ func NewKeyedRefCount[K comparable, V any](
 func NewKeyedRefCountWithLogger[K comparable, V any](
 	ctorCb func(key K) (Routine, V),
 	le *logrus.Entry,
+	opts ...Option[K, V],
 ) *KeyedRefCount[K, V] {
 	return &KeyedRefCount[K, V]{
-		keyed: NewKeyedWithLogger(ctorCb, le),
+		keyed: NewKeyedWithLogger(ctorCb, le, opts...),
 		refs:  make(map[K][]*KeyedRef[K, V]),
 	}
 }
