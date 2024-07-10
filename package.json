@@ -46,10 +46,10 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.17.0",
+    "@aptre/common": "^0.17.2",
     "depcheck": "^1.4.7",
     "prettier": "^3.2.5",
-    "rimraf": "^5.0.5",
+    "rimraf": "^6.0.1",
     "typescript": "^5.1.6"
   },
   "dependencies": {
