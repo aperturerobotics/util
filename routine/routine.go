@@ -162,7 +162,7 @@ func (k *RoutineContainer) setRoutineLocked(routine Routine) (<-chan struct{}, b
 	prevRoutine := k.routine
 	var wasReset bool
 	if prevRoutine != nil {
-		wasReset = k.ctx != nil && prevRoutine != nil && !prevRoutine.exited
+		wasReset = k.ctx != nil && !prevRoutine.exited
 		prevExitedCh = prevRoutine.exitedCh
 		if prevRoutine.ctxCancel != nil {
 			prevRoutine.ctxCancel()
