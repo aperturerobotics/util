@@ -358,6 +358,10 @@ func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx conte
 			if prevCancel != nil {
 				prevCancel()
 			}
+			if prevWait != nil {
+				// wait for previous routine to exit.
+				<-prevWait
+			}
 			return context.Canceled
 		case <-waitCh:
 		}
