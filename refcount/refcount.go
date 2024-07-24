@@ -289,36 +289,19 @@ func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx conte
 				currVal = nowVal
 				currErr = nowErr
 				currResolved = nowResolved
+				currNonce++
 				broadcast()
 			}
 		})
 	})
 	defer ref.Release()
 
-	var prevCancel context.CancelFunc
-	var prevWait chan struct{}
 	for {
 		if useCtx {
 			r.SetContextIfCanceled(ctx)
 		}
 
-		// mark the nonce has increased to ensure we release the correct value
-		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			currNonce++
-		})
-		if prevCancel != nil {
-			prevCancel()
-			prevCancel = nil
-		}
-		if prevWait != nil {
-			select {
-			case <-ctx.Done():
-				return context.Canceled
-			case <-prevWait:
-				prevWait = nil
-			}
-		}
-
+		// get the current state
 		var val T
 		var err error
 		var resolved bool
@@ -326,6 +309,9 @@ func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx conte
 		var complete bool
 		var waitCh <-chan struct{}
 		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			// mark the nonce has increased to ensure we release the correct value later.
+			currNonce++
+			// snapshot current state
 			val, err, resolved, nonce, complete = currVal, currErr, currResolved, currNonce, currComplete
 			waitCh = getWaitCh()
 		})
@@ -333,35 +319,44 @@ func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx conte
 			return err
 		}
 
+		// if we have a value currently, call the callback.
 		if resolved {
-			var cbCtx context.Context
-			cbCtx, prevCancel = context.WithCancel(ctx)
-			prevWait = make(chan struct{})
-			go func(cbCtx context.Context, doneCh chan struct{}, nonce uint32, val T) {
-				defer close(doneCh)
-				cbErr := cb(cbCtx, val)
-				bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-					if currNonce == nonce {
-						if currErr == nil {
-							currErr = cbErr
-						}
-						currComplete = currErr == nil
-						currResolved = false
-						broadcast()
-					}
-				})
-			}(cbCtx, prevWait, nonce, val)
+			cbCtx, cbCancel := context.WithCancel(ctx)
+
+			// start a goroutine to wait until waitCh closes and cancel the ctx.
+			go func() {
+				select {
+				case <-ctx.Done():
+				case <-cbCtx.Done():
+				case <-waitCh:
+					cbCancel()
+				}
+			}()
+
+			cbErr := func() error {
+				defer cbCancel()
+
+				return cb(cbCtx, val)
+			}()
+
+			// stop here if the context is canceled
+			if ctx.Err() != nil {
+				return context.Canceled
+			}
+
+			// return now if the nonce is the same (nothing changed)
+			var sameNonce bool
+			bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+				sameNonce = currNonce == nonce
+			})
+			if sameNonce {
+				return cbErr
+			}
 		}
 
+		// wait for something to change
 		select {
 		case <-ctx.Done():
-			if prevCancel != nil {
-				prevCancel()
-			}
-			if prevWait != nil {
-				// wait for previous routine to exit.
-				<-prevWait
-			}
 			return context.Canceled
 		case <-waitCh:
 		}
