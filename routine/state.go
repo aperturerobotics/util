@@ -3,6 +3,7 @@ package routine
 import (
 	"context"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/sirupsen/logrus"
 )
 
@@ -10,6 +11,8 @@ import (
 type StateRoutineContainer[T comparable] struct {
 	// rc is the routine container
 	rc *RoutineContainer
+	// bcast guards below fields
+	bcast broadcast.Broadcast
 	// compare compares if the two states are equivalent
 	// if nil restarts the routine every time SetState is called
 	compare func(t1, t2 T) bool
@@ -52,9 +55,11 @@ func NewStateRoutineContainerWithLogger[T comparable](compare func(t1, t2 T) boo
 
 // GetState returns the immediate state in the StateRoutineContainer.
 func (s *StateRoutineContainer[T]) GetState() T {
-	s.rc.mtx.Lock()
-	defer s.rc.mtx.Unlock()
-	return s.s
+	var state T
+	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		state = s.s
+	})
+	return state
 }
 
 // SetState sets the state in the StateRoutineContainer.
@@ -62,13 +67,14 @@ func (s *StateRoutineContainer[T]) GetState() T {
 // Returns if the state changed and if the routine is running.
 // If reset=true the existing routine was canceled or restarted.
 func (s *StateRoutineContainer[T]) SetState(state T) (waitReturn <-chan struct{}, changed, reset, running bool) {
-	s.rc.mtx.Lock()
-	defer s.rc.mtx.Unlock()
-	return s.setStateLocked(state)
+	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		waitReturn, changed, reset, running = s.setStateLocked(state, broadcast)
+	})
+	return
 }
 
 // setStateLocked compares and updates the state when mtx is locked.
-func (s *StateRoutineContainer[T]) setStateLocked(state T) (waitReturn <-chan struct{}, changed, reset, running bool) {
+func (s *StateRoutineContainer[T]) setStateLocked(state T, broadcast func()) (waitReturn <-chan struct{}, changed, reset, running bool) {
 	if s.compare == nil {
 		changed = true
 	} else {
@@ -76,7 +82,8 @@ func (s *StateRoutineContainer[T]) setStateLocked(state T) (waitReturn <-chan st
 	}
 	if changed {
 		s.s = state
-		waitReturn, reset, running = s.updateStateRoutineLocked()
+		waitReturn, reset, running = s.updateStateRoutineLocked(broadcast)
+		broadcast()
 	}
 	return
 }
@@ -86,26 +93,24 @@ func (s *StateRoutineContainer[T]) setStateLocked(state T) (waitReturn <-chan st
 // Returns the updated value and if the state changed.
 // If reset=true returns a channel which closes when the previous instance has exited.
 func (s *StateRoutineContainer[T]) SwapValue(cb func(val T) T) (nextState T, waitReturn <-chan struct{}, changed, reset, running bool) {
-	s.rc.mtx.Lock()
-	defer s.rc.mtx.Unlock()
-
-	stateBefore := s.s
-	if cb != nil {
-		nextState = cb(stateBefore)
-		changed = nextState != stateBefore
-	} else {
-		nextState = stateBefore
-	}
-
-	if changed {
-		waitReturn, changed, reset, running = s.setStateLocked(nextState)
-		if !changed {
+	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		stateBefore := s.s
+		if cb != nil {
+			nextState = cb(stateBefore)
+			changed = nextState != stateBefore
+		} else {
 			nextState = stateBefore
 		}
-	} else {
-		running = s.rc.getRunningLocked()
-	}
 
+		if changed {
+			waitReturn, changed, reset, running = s.setStateLocked(nextState, broadcast)
+			if !changed {
+				nextState = stateBefore
+			}
+		} else {
+			running = s.rc.getRunningLocked()
+		}
+	})
 	return
 }
 
@@ -117,14 +122,15 @@ func (s *StateRoutineContainer[T]) SwapValue(cb func(val T) T) (nextState T, wai
 // If SetContext has not been called or SetState is empty, returns false for running.
 // Note: does not check if routine is equal to the current routine func (cannot compare generic funcs).
 func (s *StateRoutineContainer[T]) SetStateRoutine(routine StateRoutine[T]) (waitReturn <-chan struct{}, reset, running bool) {
-	s.rc.mtx.Lock()
-	defer s.rc.mtx.Unlock()
-	s.stateRoutine = routine
-	return s.updateStateRoutineLocked()
+	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		s.stateRoutine = routine
+		waitReturn, reset, running = s.updateStateRoutineLocked(broadcast)
+	})
+	return
 }
 
 // updateStateRoutineLocked updates the state or the s.stateRoutine and calls setRoutineLocked.
-func (s *StateRoutineContainer[T]) updateStateRoutineLocked() (waitReturn <-chan struct{}, reset, running bool) {
+func (s *StateRoutineContainer[T]) updateStateRoutineLocked(broadcast func()) (waitReturn <-chan struct{}, reset, running bool) {
 	var empty T
 	st, routine := s.s, s.stateRoutine
 	var setRoutine Routine
@@ -133,7 +139,7 @@ func (s *StateRoutineContainer[T]) updateStateRoutineLocked() (waitReturn <-chan
 			return routine(ctx, st)
 		}
 	}
-	waitReturn, reset = s.rc.setRoutineLocked(setRoutine)
+	waitReturn, reset = s.rc.setRoutineLocked(setRoutine, broadcast)
 	running = s.rc.getRunningLocked()
 	return
 }

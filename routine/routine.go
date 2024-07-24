@@ -2,7 +2,6 @@ package routine
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/aperturerobotics/util/backoff"
@@ -20,14 +19,12 @@ type Routine func(ctx context.Context) error
 type RoutineContainer struct {
 	// exitedCbs is the set of exited callbacks.
 	exitedCbs []func(err error)
-	// mtx guards below fields
-	mtx sync.Mutex
+	// bcast guards below fields
+	bcast broadcast.Broadcast
 	// ctx is the current root context
 	ctx context.Context
 	// routine is the current running routine, if any
 	routine *runningRoutine
-	// bcast is broadcasted when the routine changes
-	bcast broadcast.Broadcast
 	// retryBo is the retry backoff if retrying is enabled.
 	retryBo cbackoff.BackOff
 }
@@ -59,22 +56,24 @@ func NewRoutineContainerWithLogger(le *logrus.Entry, opts ...Option) *RoutineCon
 // errCh is an optional error channel (can be nil)
 func (k *RoutineContainer) WaitExited(ctx context.Context, returnIfNotRunning bool, errCh <-chan error) error {
 	for {
-		k.mtx.Lock()
 		var exited bool
 		var exitedErr error
-		if k.ctx != nil && k.ctx.Err() != nil {
-			k.ctx = nil
-		}
-		if k.routine != nil && k.ctx != nil {
-			exited = k.routine.exited || k.routine.success
-			if exited {
-				exitedErr = k.routine.err
+		var waitCh <-chan struct{}
+
+		k.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			if k.ctx != nil && k.ctx.Err() != nil {
+				k.ctx = nil
 			}
-		} else if returnIfNotRunning {
-			exited = true
-		}
-		waitCh := k.bcast.GetWaitCh()
-		k.mtx.Unlock()
+			if k.routine != nil && k.ctx != nil {
+				exited = k.routine.exited || k.routine.success
+				if exited {
+					exitedErr = k.routine.err
+				}
+			} else if returnIfNotRunning {
+				exited = true
+			}
+			waitCh = getWaitCh()
+		})
 
 		if exited {
 			return exitedErr
@@ -101,29 +100,30 @@ func (k *RoutineContainer) WaitExited(ctx context.Context, returnIfNotRunning bo
 //
 // Returns if the routine was stopped or restarted.
 func (k *RoutineContainer) SetContext(ctx context.Context, restart bool) bool {
-	k.mtx.Lock()
-	defer k.mtx.Unlock()
-
-	sameCtx := k.ctx == ctx
-	if sameCtx && !restart {
-		return false
-	}
-
-	k.ctx = ctx
-	rr := k.routine
-	if rr == nil || (sameCtx && rr.err == nil) {
-		return false
-	}
-
-	rr.stop()
-	if rr.err == nil || restart {
-		if ctx != nil {
-			rr.start(ctx, rr.exitedCh, false)
+	var changed bool
+	k.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		sameCtx := k.ctx == ctx
+		if sameCtx && !restart {
+			return
 		}
-	}
 
-	k.bcast.Broadcast()
-	return true
+		k.ctx = ctx
+		rr := k.routine
+		if rr == nil || (sameCtx && rr.err == nil) {
+			return
+		}
+
+		rr.stop()
+		if rr.err == nil || restart {
+			if ctx != nil {
+				rr.start(ctx, rr.exitedCh, false)
+			}
+		}
+
+		changed = true
+		broadcast()
+	})
+	return changed
 }
 
 // ClearContext clears the context and shuts down all routines.
@@ -144,16 +144,16 @@ func (k *RoutineContainer) getRunningLocked() bool {
 // Returns a channel which will be closed when the previous routine exits.
 // The waitReturn channel will be nil if there was no previous routine (reset=false).
 func (k *RoutineContainer) SetRoutine(routine Routine) (waitReturn <-chan struct{}, reset bool) {
-	k.mtx.Lock()
-	defer k.mtx.Unlock()
-
-	return k.setRoutineLocked(routine)
+	k.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		waitReturn, reset = k.setRoutineLocked(routine, broadcast)
+	})
+	return
 }
 
-// setRoutineLocked updates the Routine while mtx is locked.
+// setRoutineLocked updates the Routine while bcast is locked.
 // Returns if the current routine was stopped or overwritten.
 // Returns a channel to wait for in order to wait for the previous routine to exit.
-func (k *RoutineContainer) setRoutineLocked(routine Routine) (<-chan struct{}, bool) {
+func (k *RoutineContainer) setRoutineLocked(routine Routine, broadcast func()) (<-chan struct{}, bool) {
 	if k.ctx != nil && k.ctx.Err() != nil {
 		k.ctx = nil
 	}
@@ -170,7 +170,6 @@ func (k *RoutineContainer) setRoutineLocked(routine Routine) (<-chan struct{}, b
 		}
 		k.routine = nil
 	}
-	k.bcast.Broadcast()
 
 	if routine != nil {
 		r := newRunningRoutine(k, routine)
@@ -178,6 +177,9 @@ func (k *RoutineContainer) setRoutineLocked(routine Routine) (<-chan struct{}, b
 		if k.ctx != nil {
 			k.routine.start(k.ctx, prevExitedCh, false)
 		}
+		broadcast()
+	} else if wasReset {
+		broadcast()
 	}
 
 	return prevExitedCh, wasReset
@@ -187,14 +189,15 @@ func (k *RoutineContainer) setRoutineLocked(routine Routine) (<-chan struct{}, b
 // Returns if the routine was restarted.
 // Returns false if the context is currently nil or the routine is unset.
 func (k *RoutineContainer) RestartRoutine() bool {
-	k.mtx.Lock()
-	defer k.mtx.Unlock()
-
-	return k.restartRoutineLocked(false)
+	var restarted bool
+	k.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		restarted = k.restartRoutineLocked(false, broadcast)
+	})
+	return restarted
 }
 
 // restartRoutineLocked restarts the running routine (if set) while locked.
-func (k *RoutineContainer) restartRoutineLocked(onlyIfExited bool) bool {
+func (k *RoutineContainer) restartRoutineLocked(onlyIfExited bool, broadcast func()) bool {
 	if k.ctx != nil && k.ctx.Err() != nil {
 		k.ctx = nil
 	}
@@ -211,7 +214,6 @@ func (k *RoutineContainer) restartRoutineLocked(onlyIfExited bool) bool {
 		r.ctxCancel()
 		r.ctxCancel = nil
 	}
-	k.bcast.Broadcast()
 	if k.ctx == nil {
 		return false
 	}
@@ -219,6 +221,7 @@ func (k *RoutineContainer) restartRoutineLocked(onlyIfExited bool) bool {
 	prevExitedCh := r.exitedCh
 	r.exitedCh = nil
 	r.start(k.ctx, prevExitedCh, true)
+	broadcast()
 	return true
 }
 
@@ -305,39 +308,40 @@ func (r *runningRoutine) execute(
 	cancel()
 	close(exitedCh)
 
-	r.r.mtx.Lock()
-	if r.ctx == ctx {
-		r.err = err
-		r.success = err == nil
-		r.exited = true
-		r.exitedCh = nil
-		if r.r.retryBo != nil {
-			if r.deferRetry != nil {
-				r.deferRetry.Stop()
-				r.deferRetry = nil
-			}
-			if r.success {
-				r.r.retryBo.Reset()
-			} else if r.r.routine == r {
-				dur := r.r.retryBo.NextBackOff()
-				if dur != backoff.Stop {
-					r.deferRetry = time.AfterFunc(dur, func() {
-						r.r.mtx.Lock()
-						if r.r.ctx != nil && r.r.routine == r && r.exited {
-							r.start(r.r.ctx, r.exitedCh, true)
-						}
-						r.r.mtx.Unlock()
-					})
+	r.r.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if r.ctx == ctx {
+			r.err = err
+			r.success = err == nil
+			r.exited = true
+			r.exitedCh = nil
+			if r.r.retryBo != nil {
+				if r.deferRetry != nil {
+					r.deferRetry.Stop()
+					r.deferRetry = nil
+				}
+				if r.success {
+					r.r.retryBo.Reset()
+				} else if r.r.routine == r {
+					dur := r.r.retryBo.NextBackOff()
+					if dur != backoff.Stop {
+						r.deferRetry = time.AfterFunc(dur, func() {
+							r.r.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+								if r.r.ctx != nil && r.r.routine == r && r.exited {
+									r.start(r.r.ctx, r.exitedCh, true)
+								}
+								broadcast()
+							})
+						})
+					}
 				}
 			}
+			for i := len(r.r.exitedCbs) - 1; i >= 0; i-- {
+				// run after unlocking bcast
+				defer r.r.exitedCbs[i](err)
+			}
+			broadcast()
 		}
-		for i := len(r.r.exitedCbs) - 1; i >= 0; i-- {
-			// run after unlocking mtx
-			defer (r.r.exitedCbs[i])(r.err)
-		}
-		r.r.bcast.Broadcast()
-	}
-	r.r.mtx.Unlock()
+	})
 }
 
 // stop is called when the routine is removed / canceled.
