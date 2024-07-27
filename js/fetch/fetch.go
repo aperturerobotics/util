@@ -253,8 +253,7 @@ func Fetch(url string, opts *Opts) (*Response, error) {
 		abort := func() {
 			controller.Call("abort")
 		}
-		defer abort()
-		defer context.AfterFunc(opts.Signal, abort)()
+		context.AfterFunc(opts.Signal, abort)
 	}
 
 	success := js.FuncOf(func(this js.Value, args []js.Value) interface{} {

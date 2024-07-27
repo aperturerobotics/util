@@ -40,7 +40,7 @@ func (b *ReadableStream) Read(p []byte) (n int, err error) {
 		return n, nil
 	}
 
-	resultChan := make(chan struct{})
+	resultChan := make(chan struct{}, 2)
 	var result js.Value
 
 	success := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -61,10 +61,6 @@ func (b *ReadableStream) Read(p []byte) (n int, err error) {
 	<-resultChan
 
 	if b.readError != nil {
-		if b.readError.Error() == "BodyStreamBuffer was aborted" {
-			b.closed = true
-			return 0, io.EOF
-		}
 		return 0, b.readError
 	}
 
@@ -111,5 +107,6 @@ func (b *ReadableStream) Close() error {
 		b.closed = true
 		b.reader.Call("cancel")
 	}
+
 	return nil
 }
