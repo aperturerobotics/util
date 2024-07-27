@@ -114,6 +114,67 @@ func (o *Opts) Clone() *Opts {
 	return clone
 }
 
+// Merge merges another CommonOpts into the current CommonOpts, overwriting fields if set.
+func (c *CommonOpts) Merge(other *CommonOpts) {
+	if other == nil {
+		return
+	}
+
+	if other.Mode != "" {
+		c.Mode = other.Mode
+	}
+	if other.Credentials != "" {
+		c.Credentials = other.Credentials
+	}
+	if other.Cache != "" {
+		c.Cache = other.Cache
+	}
+	if other.Redirect != "" {
+		c.Redirect = other.Redirect
+	}
+	if other.Referrer != "" {
+		c.Referrer = other.Referrer
+	}
+	if other.ReferrerPolicy != "" {
+		c.ReferrerPolicy = other.ReferrerPolicy
+	}
+	if other.Integrity != "" {
+		c.Integrity = other.Integrity
+	}
+	if other.KeepAlive != nil {
+		keepAliveValue := *other.KeepAlive
+		c.KeepAlive = &keepAliveValue
+	}
+}
+
+// Merge merges another Opts into the current Opts, overwriting fields if set.
+func (o *Opts) Merge(other *Opts) {
+	if other == nil {
+		return
+	}
+
+	if other.Method != "" {
+		o.Method = other.Method
+	}
+	if other.Header != nil {
+		if o.Header == nil {
+			o.Header = make(Header)
+		}
+		for k, v := range other.Header {
+			o.Header[k] = v
+		}
+	}
+	if other.Body != nil {
+		o.Body = other.Body
+	}
+	if other.Signal != nil {
+		o.Signal = other.Signal
+	}
+
+	// Merge CommonOpts
+	o.CommonOpts.Merge(&other.CommonOpts)
+}
+
 // Response is the response that returns from the fetch promise.
 type Response struct {
 	// OK indicates if the response status code indicates success or not.

@@ -104,3 +104,78 @@ func TestFetchHttpBin(t *testing.T) {
 		t.Logf("Received response with correct POST body")
 	})
 }
+
+func TestMerge(t *testing.T) {
+	t.Run("CommonOpts.Merge", func(t *testing.T) {
+		base := &CommonOpts{
+			Mode:        "cors",
+			Credentials: "include",
+			Cache:       "no-cache",
+		}
+		other := &CommonOpts{
+			Mode:           "no-cors",
+			ReferrerPolicy: "no-referrer",
+			KeepAlive:      &[]bool{true}[0],
+		}
+
+		base.Merge(other)
+
+		if base.Mode != "no-cors" {
+			t.Errorf("Expected Mode to be 'no-cors', got '%s'", base.Mode)
+		}
+		if base.Credentials != "include" {
+			t.Errorf("Expected Credentials to be 'include', got '%s'", base.Credentials)
+		}
+		if base.Cache != "no-cache" {
+			t.Errorf("Expected Cache to be 'no-cache', got '%s'", base.Cache)
+		}
+		if base.ReferrerPolicy != "no-referrer" {
+			t.Errorf("Expected ReferrerPolicy to be 'no-referrer', got '%s'", base.ReferrerPolicy)
+		}
+		if base.KeepAlive == nil || *base.KeepAlive != true {
+			t.Errorf("Expected KeepAlive to be true, got %v", base.KeepAlive)
+		}
+	})
+
+	t.Run("Opts.Merge", func(t *testing.T) {
+		base := &Opts{
+			Method: "GET",
+			Header: Header{"Content-Type": []string{"application/json"}},
+			CommonOpts: CommonOpts{
+				Mode: "cors",
+			},
+		}
+		other := &Opts{
+			Method: "POST",
+			Header: Header{"Authorization": []string{"Bearer token"}},
+			Body:   strings.NewReader("test body"),
+			CommonOpts: CommonOpts{
+				Credentials: "include",
+			},
+		}
+
+		base.Merge(other)
+
+		if base.Method != "POST" {
+			t.Errorf("Expected Method to be 'POST', got '%s'", base.Method)
+		}
+		if len(base.Header) != 2 {
+			t.Errorf("Expected 2 headers, got %d", len(base.Header))
+		}
+		if base.Header.Get("Content-Type") != "application/json" {
+			t.Errorf("Expected Content-Type header to be 'application/json', got '%s'", base.Header.Get("Content-Type"))
+		}
+		if base.Header.Get("Authorization") != "Bearer token" {
+			t.Errorf("Expected Authorization header to be 'Bearer token', got '%s'", base.Header.Get("Authorization"))
+		}
+		if base.Body == nil {
+			t.Error("Expected Body to be set, got nil")
+		}
+		if base.CommonOpts.Mode != "cors" {
+			t.Errorf("Expected Mode to be 'cors', got '%s'", base.CommonOpts.Mode)
+		}
+		if base.CommonOpts.Credentials != "include" {
+			t.Errorf("Expected Credentials to be 'include', got '%s'", base.CommonOpts.Credentials)
+		}
+	})
+}
