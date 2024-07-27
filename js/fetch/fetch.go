@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"syscall/js"
 
 	stream "github.com/aperturerobotics/util/js/readable-stream"
@@ -230,7 +231,9 @@ func Fetch(url string, opts *Opts) (*Response, error) {
 	})
 	defer failure.Release()
 
-	go js.Global().Call("fetch", url, optsMap).Call("then", success).Call("catch", failure)
+	jsOptsMap := js.ValueOf(optsMap)
+	promise := js.Global().Call("fetch", url, jsOptsMap)
+	go promise.Call("then", success).Call("catch", failure)
 
 	r := <-ch
 	if r.e != nil {
@@ -322,7 +325,9 @@ func mapOpts(opts *Opts) (map[string]interface{}, error) {
 			return nil, err
 		}
 
-		mp["body"] = string(bts)
+		uint8Array := js.Global().Get("Uint8Array").New(len(bts))
+		js.CopyBytesToJS(uint8Array, bts)
+		mp["body"] = uint8Array
 	}
 
 	return mp, nil
@@ -331,7 +336,7 @@ func mapOpts(opts *Opts) (map[string]interface{}, error) {
 func mapHeaders(mp Header) map[string]interface{} {
 	newMap := map[string]interface{}{}
 	for k, v := range mp {
-		newMap[k] = v
+		newMap[k] = strings.Join(v, ", ")
 	}
 	return newMap
 }
