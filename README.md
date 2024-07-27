@@ -14,14 +14,18 @@ Various utilities for Go and TypeScript including:
  - [ccall]: call a set of functions concurrently and wait for error or exit
  - [ccontainer]: concurrent container for objects
  - [commonprefix]: find common prefix between strings
- - [cqueue]: concurrent atomic queues (LIFO)
  - [conc]: concurrent processing queue
+ - [cqueue]: concurrent atomic queues (LIFO)
  - [csync]: sync primitives supporting context arguments
  - [debounce-fswatcher]: debounce fs watcher events
  - [exec]: wrapper around Go os exec
  - [fsutil]: utilities for os filesystem
+ - [httplog/fetch]: JS Fetch API wrapper with logging for WASM
+ - [httplog]: HTTP request and response logging utilities
  - [iocloser]: wrap reader/writer with a close function
  - [iosizer]: read/writer with metrics for size
+ - [js/fetch]: Fetch API wrapper for WASM
+ - [js/readable-stream]: ReadableStream wrapper for WASM
  - [keyed]: key/value based routine management
  - [linkedlist]: linked list with head/tail
  - [memo]: memoize a function: call it once and remember results
@@ -39,13 +43,17 @@ Various utilities for Go and TypeScript including:
 [ccontainer]: ./ccontainer
 [commonprefix]: ./commonprefix
 [conc]: ./conc
-[csync]: ./csync
 [cqueue]: ./cqueue
+[csync]: ./csync
 [debounce-fswatcher]: ./debounce-fswatcher
 [exec]: ./exec
 [fsutil]: ./fsutil
+[httplog/fetch]: ./httplog/fetch
+[httplog]: ./httplog
 [iocloser]: ./iocloser
 [iosizer]: ./iosizer
+[js/fetch]: ./js/fetch
+[js/readable-stream]: ./js/readable-stream
 [keyed]: ./keyed
 [linkedlist]: ./linkedlist
 [memo]: ./memo
