@@ -3,6 +3,7 @@ package routine
 import (
 	"context"
 
+	proto "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/sirupsen/logrus"
 )
@@ -50,6 +51,30 @@ func NewStateRoutineContainerWithLogger[T comparable](compare func(t1, t2 T) boo
 	return &StateRoutineContainer[T]{
 		rc:      NewRoutineContainerWithLogger(le, opts...),
 		compare: compare,
+	}
+}
+
+// NewStateRoutineContainer constructs a new StateRoutineContainer with protobuf comparison.
+//
+// Note: routines won't start until SetContext and SetState is called.
+// If the state is equivalent to an empty T (nil if a pointer) the routine is stopped.
+// compare must compare if the two states are equivalent.
+// if compare is nil restarts the routine every time SetState is called.
+func NewStateRoutineContainerVT[T proto.EqualVT[T]](opts ...Option) *StateRoutineContainer[T] {
+	return &StateRoutineContainer[T]{
+		rc:      NewRoutineContainer(opts...),
+		compare: proto.CompareEqualVT[T](),
+	}
+}
+
+// NewRoutineContainerWithLogger constructs a new RoutineContainer instance.
+// Logs when a controller exits without being canceled.
+//
+// Note: routines won't start until SetContext is called.
+func NewStateRoutineContainerWithLoggerVT[T proto.EqualVT[T]](le *logrus.Entry, opts ...Option) *StateRoutineContainer[T] {
+	return &StateRoutineContainer[T]{
+		rc:      NewRoutineContainerWithLogger(le, opts...),
+		compare: proto.CompareEqualVT[T](),
 	}
 }
 
