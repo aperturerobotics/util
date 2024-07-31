@@ -23,6 +23,7 @@ Various utilities for Go and TypeScript including:
  - [httplog/fetch]: JS Fetch API wrapper with logging for WASM
  - [httplog]: HTTP request and response logging utilities
  - [iocloser]: wrap reader/writer with a close function
+ - [iowriter]: io.Writer implementation with callback function
  - [iosizer]: read/writer with metrics for size
  - [js/fetch]: Fetch API wrapper for WASM
  - [js/readable-stream]: ReadableStream wrapper for WASM
@@ -51,6 +52,7 @@ Various utilities for Go and TypeScript including:
 [httplog/fetch]: ./httplog/fetch
 [httplog]: ./httplog
 [iocloser]: ./iocloser
+[iowriter]: ./iowriter
 [iosizer]: ./iosizer
 [js/fetch]: ./js/fetch
 [js/readable-stream]: ./js/readable-stream
