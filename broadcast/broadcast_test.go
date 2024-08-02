@@ -1,26 +1,44 @@
 package broadcast
 
-import "testing"
+import (
+	"fmt"
+	"time"
+)
 
-func TestBroadcast(t *testing.T) {
-	var bcast Broadcast
+func ExampleBroadcast() {
+	// b guards currValue
+	var b Broadcast
+	var currValue int
 
-	ch := bcast.GetWaitCh()
-	select {
-	case <-ch:
-		t.FailNow()
-	default:
+	go func() {
+		// 0 to 9 inclusive
+		for i := range 10 {
+			<-time.After(time.Millisecond * 20)
+			b.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+				currValue = i
+				broadcast()
+			})
+		}
+	}()
+
+	var waitCh <-chan struct{}
+	var gotValue int
+	for {
+		b.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			gotValue = currValue
+			waitCh = getWaitCh()
+		})
+
+		// last value
+		if gotValue == 9 {
+			// success
+			break
+		}
+
+		// otherwise keep waiting
+		<-waitCh
 	}
 
-	bcast.Broadcast()
-	select {
-	case <-ch:
-	default:
-		t.FailNow()
-	}
-	select {
-	case <-bcast.GetWaitCh():
-		t.FailNow()
-	default:
-	}
+	fmt.Printf("waited for value to increment: %v\n", gotValue)
+	// Output: waited for value to increment: 9
 }

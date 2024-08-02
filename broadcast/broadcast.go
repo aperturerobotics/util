@@ -2,9 +2,6 @@ package broadcast
 
 import "sync"
 
-// adapted from missinggo (MIT license)
-// https://github.com/anacrolix/missinggo/blob/master/chancond.go
-
 // Broadcast implements notifying waiters via a channel.
 //
 // The zero-value of this struct is valid.
@@ -13,21 +10,10 @@ type Broadcast struct {
 	ch  chan struct{}
 }
 
-// GetWaitCh returns a channel that is closed when Broadcast is called.
-func (c *Broadcast) GetWaitCh() <-chan struct{} {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	return c.getWaitChLocked()
-}
-
-// Broadcast closes the broadcast channel, triggering waiters.
-func (c *Broadcast) Broadcast() {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	c.broadcastLocked()
-}
-
 // HoldLock locks the mutex and calls the callback.
+//
+// broadcast closes the wait channel, if any.
+// getWaitCh returns a channel that will be closed when broadcast is called.
 func (c *Broadcast) HoldLock(cb func(broadcast func(), getWaitCh func() <-chan struct{})) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
