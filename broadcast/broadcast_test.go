@@ -62,10 +62,14 @@ func ExampleBroadcast_Wait() {
 
 	ctx := context.Background()
 	var gotValue int
-	b.Wait(ctx, func(broadcast func()) (bool, error) {
+	err := b.Wait(ctx, func(broadcast func(), getWaitCh func() <-chan struct{}) (bool, error) {
 		gotValue = currValue
 		return gotValue == 9, nil
 	})
+	if err != nil {
+		fmt.Printf("failed to wait for value: %v", err.Error())
+		return
+	}
 
 	fmt.Printf("waited for value to increment: %v\n", gotValue)
 	// Output: waited for value to increment: 9
