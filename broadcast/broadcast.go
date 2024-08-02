@@ -24,6 +24,17 @@ func (c *Broadcast) HoldLock(cb func(broadcast func(), getWaitCh func() <-chan s
 	cb(c.broadcastLocked, c.getWaitChLocked)
 }
 
+// TryHoldLock attempts to lock the mutex and call the callback.
+// It returns true if the lock was acquired and the callback was called, false otherwise.
+func (c *Broadcast) TryHoldLock(cb func(broadcast func(), getWaitCh func() <-chan struct{})) bool {
+	if !c.mtx.TryLock() {
+		return false
+	}
+	defer c.mtx.Unlock()
+	cb(c.broadcastLocked, c.getWaitChLocked)
+	return true
+}
+
 // HoldLockMaybeAsync locks the mutex and calls the callback if possible.
 // If the mutex cannot be locked right now, starts a new Goroutine to wait for it.
 func (c *Broadcast) HoldLockMaybeAsync(cb func(broadcast func(), getWaitCh func() <-chan struct{})) {
