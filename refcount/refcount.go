@@ -141,25 +141,6 @@ func (r *RefCount[T]) SetContext(ctx context.Context) bool {
 	return updated
 }
 
-// SetContextIfCanceled updates the context to use for the RefCount container resolution.
-// If the current r.ctx is not nil and not canceled, does nothing.
-// If the passed ctx is nil or canceled, does nothing.
-// This also restarts resolution if there are any refs.
-// Returns if the context was updated.
-func (r *RefCount[T]) SetContextIfCanceled(ctx context.Context) bool {
-	var updated bool
-	r.mtx.Lock()
-	if r.ctx == nil || r.ctx.Err() != nil {
-		if ctx != nil && ctx.Err() == nil {
-			r.ctx = ctx
-			r.startResolveLocked()
-			updated = true
-		}
-	}
-	r.mtx.Unlock()
-	return updated
-}
-
 // ClearContext clears the context and shuts down all routines.
 func (r *RefCount[T]) ClearContext() {
 	_ = r.SetContext(nil)
@@ -274,8 +255,7 @@ func (r *RefCount[T]) ResolveWithReleased(ctx context.Context, released func()) 
 // The context will be canceled if the value is removed / changed.
 // Return context.Canceled if the context is canceled.
 // The callback may be restarted if the context is canceled and a new value is resolved.
-// If useCtx=true and the current context is canceled, updates r to use ctx instead.
-func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx context.Context, val T) error) error {
+func (r *RefCount[T]) Access(ctx context.Context, cb func(ctx context.Context, val T) error) error {
 	var bcast broadcast.Broadcast
 	var currVal T
 	var currErr error
@@ -297,10 +277,6 @@ func (r *RefCount[T]) Access(ctx context.Context, useCtx bool, cb func(ctx conte
 	defer ref.Release()
 
 	for {
-		if useCtx {
-			r.SetContextIfCanceled(ctx)
-		}
-
 		// get the current state
 		var val T
 		var err error
