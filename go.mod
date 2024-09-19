@@ -1,11 +1,13 @@
 module github.com/aperturerobotics/util
 
-go 1.22
+go 1.22.0
+
+toolchain go1.23.1
 
 require (
-	github.com/aperturerobotics/common v0.18.4 // latest
+	github.com/aperturerobotics/common v0.18.6 // latest
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
+	github.com/aperturerobotics/protobuf-go-lite v0.7.0 // latest
 )
 
 require (
@@ -13,7 +15,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
+	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 )
 
 require golang.org/x/sys v0.4.0 // indirect
