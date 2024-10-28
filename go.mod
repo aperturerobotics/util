@@ -5,9 +5,9 @@ go 1.22.0
 toolchain go1.23.2
 
 require (
-	github.com/aperturerobotics/common v0.18.8 // latest
+	github.com/aperturerobotics/common v0.19.1 // latest
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.7.0 // latest
+	github.com/aperturerobotics/protobuf-go-lite v0.8.0 // latest
 )
 
 require (
