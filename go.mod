@@ -11,7 +11,6 @@ require (
 )
 
 require (
-	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/pkg/errors v0.9.1

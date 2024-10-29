@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/backoff"
-	cbackoff "github.com/cenkalti/backoff"
+	cbackoff "github.com/cenkalti/backoff/v4"
 )
 
 // runningRoutine tracks a running routine

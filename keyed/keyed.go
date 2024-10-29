@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	cbackoff "github.com/cenkalti/backoff"
+	cbackoff "github.com/cenkalti/backoff/v4"
 	"github.com/sirupsen/logrus"
 )
 
