@@ -3,6 +3,7 @@
 package fetch
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"syscall/js"
 
+	"github.com/aperturerobotics/util/iocloser"
 	stream "github.com/aperturerobotics/util/js/readable-stream"
 )
 
@@ -301,22 +303,26 @@ func Fetch(url string, opts *Opts) (*Response, error) {
 	}
 
 	bodyStream := r.b.Get("body")
-	r.r.Body = stream.NewReadableStream(bodyStream)
+	if !bodyStream.IsNull() && !bodyStream.IsUndefined() {
+		r.r.Body = stream.NewReadableStream(bodyStream)
 
-	// Read a small amount of data to ensure the stream is working
-	testBuf := make([]byte, 1)
-	n, err := r.r.Body.Read(testBuf)
-	if err != nil && err != io.EOF {
-		r.r.Body.Close()
-		return nil, fmt.Errorf("error reading response body: %w", err)
-	}
-
-	// If we read some data, we need to put it back
-	if n > 0 {
-		r.r.Body = &prefixedReader{
-			prefix: testBuf[:n],
-			reader: r.r.Body,
+		// Read a small amount of data to ensure the stream is working
+		testBuf := make([]byte, 1)
+		n, err := r.r.Body.Read(testBuf)
+		if err != nil && err != io.EOF {
+			r.r.Body.Close()
+			return nil, fmt.Errorf("error reading response body: %w", err)
 		}
+
+		// If we read some data, we need to put it back
+		if n > 0 {
+			r.r.Body = &prefixedReader{
+				prefix: testBuf[:n],
+				reader: r.r.Body,
+			}
+		}
+	} else {
+		r.r.Body = iocloser.NewReadCloser(bytes.NewReader(nil), nil)
 	}
 
 	return r.r, nil
