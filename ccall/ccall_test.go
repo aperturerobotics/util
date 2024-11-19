@@ -12,10 +12,10 @@ func TestCallConcurrently_Success(t *testing.T) {
 	var accum atomic.Int32
 
 	var fns []CallConcurrentlyFunc
-	for i := 0; i < 10; i++ {
-		i := i
+	for i := int32(0); i < 10; i++ {
+		x := i // copy value
 		fns = append(fns, func(ctx context.Context) error {
-			accum.Add(int32(i))
+			accum.Add(int32(x))
 			return nil
 		})
 	}
