@@ -15,7 +15,7 @@ func TestCallConcurrently_Success(t *testing.T) {
 	for i := int32(0); i < 10; i++ {
 		x := i // copy value
 		fns = append(fns, func(ctx context.Context) error {
-			accum.Add(int32(x))
+			accum.Add(x)
 			return nil
 		})
 	}
