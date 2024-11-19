@@ -2,12 +2,13 @@ package iosizer
 
 import (
 	"io"
+	"math"
 	"sync/atomic"
 )
 
 // SizeReadWriter implements io methods keeping total size metrics.
 type SizeReadWriter struct {
-	total uint64
+	total atomic.Uint64
 	rdr   io.Reader
 	wtr   io.Writer
 }
@@ -19,7 +20,7 @@ func NewSizeReadWriter(rdr io.Reader, writer io.Writer) *SizeReadWriter {
 
 // TotalSize returns the total amount of data transferred.
 func (s *SizeReadWriter) TotalSize() uint64 {
-	return atomic.LoadUint64(&s.total)
+	return s.total.Load()
 }
 
 // Read reads data from the source.
@@ -28,8 +29,10 @@ func (s *SizeReadWriter) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 	n, err = s.rdr.Read(p)
-	if n != 0 {
-		atomic.AddUint64(&s.total, uint64(n))
+	// G115: Protect against integer overflow by checking n <= math.MaxUint32 before conversion to uint64
+	// G115: Protect against integer overflow by checking n <= math.MaxUint32 before conversion to uint64
+	if n > 0 && n <= math.MaxUint32 {
+		s.total.Add(uint64(n))
 	}
 	return
 }
@@ -40,8 +43,8 @@ func (s *SizeReadWriter) Write(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 	n, err = s.wtr.Write(p)
-	if n != 0 {
-		atomic.AddUint64(&s.total, uint64(n))
+	if n > 0 && n <= math.MaxUint32 {
+		s.total.Add(uint64(n))
 	}
 	return
 }

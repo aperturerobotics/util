@@ -26,3 +26,4 @@ vendor/
 debug.test
 .aider*
 /.tools/
+.env
