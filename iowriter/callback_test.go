@@ -15,7 +15,6 @@ func TestCallbackWriter(t *testing.T) {
 
 		testData := []byte("Hello, World!")
 		n, err := cw.Write(testData)
-
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}

@@ -55,7 +55,7 @@ func TestSizeReadWriter(t *testing.T) {
 
 	// Test nil reader/writer
 	nilSrw := NewSizeReadWriter(nil, nil)
-	
+
 	_, err = nilSrw.Read(buf)
 	if err != io.EOF {
 		t.Fatalf("expected EOF for nil reader, got %v", err)

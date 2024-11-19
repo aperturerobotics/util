@@ -35,7 +35,7 @@ func TestFetch(t *testing.T) {
 			opts: &fetch.Opts{
 				Method: "POST",
 				Header: map[string][]string{
-					"Content-Type": []string{"application/json"},
+					"Content-Type": {"application/json"},
 				},
 				Body: bytes.NewReader([]byte(`{"test": "data"}`)),
 			},
