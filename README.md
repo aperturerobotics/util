@@ -18,8 +18,10 @@ Various utilities for Go and TypeScript including:
  - [cqueue]: concurrent atomic queues (LIFO)
  - [csync]: sync primitives supporting context arguments
  - [debounce-fswatcher]: debounce fs watcher events
+ - [enabled]: three-way boolean proto enum
  - [exec]: wrapper around Go os exec
  - [fsutil]: utilities for os filesystem
+ - [gitroot]: git repository root finder
  - [httplog/fetch]: JS Fetch API wrapper with logging for WASM
  - [httplog]: HTTP request and response logging utilities
  - [iocloser]: wrap reader/writer with a close function
@@ -66,6 +68,8 @@ Various utilities for Go and TypeScript including:
 [routine]: ./routine
 [scrub]: ./scrub
 [unique]: ./unique
+[vmime]: ./vmime
+[vmime]: ./vmime
 
 ## License
 
