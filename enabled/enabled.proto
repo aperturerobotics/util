@@ -1,0 +1,12 @@
+syntax = "proto3";
+package enabled;
+
+// Enabled is a three-way boolean: default, enable, disable.
+enum Enabled {
+  // DEFAULT defaults to the default option.
+  DEFAULT = 0;
+  // ENABLE enables the option even if it would normally be false.
+  ENABLE = 1;
+  // DISABLE disables the option even if it would normally be true.
+  DISABLE = 2;
+}
