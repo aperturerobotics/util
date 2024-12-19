@@ -1,6 +1,6 @@
 module github.com/aperturerobotics/util
 
-go 1.22.0
+go 1.23
 
 toolchain go1.23.4
 
@@ -12,6 +12,7 @@ require (
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/cenkalti/backoff/v5 v5.0.0
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
