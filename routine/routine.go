@@ -6,7 +6,7 @@ import (
 
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/broadcast"
-	cbackoff "github.com/cenkalti/backoff/v4"
+	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/sirupsen/logrus"
 )
 
