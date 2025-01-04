@@ -14,7 +14,7 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
+	golang.org/x/exp 7d7fa50e5329
 )
 
 require golang.org/x/sys v0.13.0 // indirect
