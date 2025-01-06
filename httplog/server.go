@@ -51,3 +51,17 @@ func (w *statusCapturingResponseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 	w.statusCode = statusCode
 }
+
+// Flush sends any buffered data to the client.
+func (w *statusCapturingResponseWriter) Flush() {
+	flusher, ok := w.ResponseWriter.(http.Flusher)
+	if ok {
+		flusher.Flush()
+	}
+}
+
+// _ is a type assertion
+var (
+	_ http.ResponseWriter = (*statusCapturingResponseWriter)(nil)
+	_ http.Flusher        = (*statusCapturingResponseWriter)(nil)
+)
