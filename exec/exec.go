@@ -12,6 +12,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// InterpretCmdErr interprets command errors and extracts meaningful error messages
+func InterpretCmdErr(err error, stderrBuf bytes.Buffer) error {
+	if err != nil && (strings.HasPrefix(err.Error(), "exit status") || strings.HasPrefix(err.Error(), "err: exit status")) {
+		stderrLines := strings.Split(stderrBuf.String(), "\n")
+		errMsg := stderrLines[len(stderrLines)-1]
+		if len(errMsg) == 0 && len(stderrLines) > 1 {
+			errMsg = stderrLines[len(stderrLines)-2]
+		}
+		return errors.New(errMsg)
+	}
+	return err
+}
+
+// SetCmdLogger configures logging for the command
+func SetCmdLogger(le *logrus.Entry, cmd *exec.Cmd, buf *bytes.Buffer) {
+	goLogger := le.WriterLevel(logrus.DebugLevel)
+	cmd.Stderr = io.MultiWriter(buf, goLogger)
+}
+
 // NewCmd builds a new exec cmd with defaults.
 func NewCmd(ctx context.Context, proc string, args ...string) *exec.Cmd {
 	ecmd := exec.CommandContext(ctx, proc, args...)
@@ -25,7 +44,10 @@ func NewCmd(ctx context.Context, proc string, args ...string) *exec.Cmd {
 // StartAndWait runs the given process and waits for ctx or process to complete.
 func StartAndWait(ctx context.Context, le *logrus.Entry, ecmd *exec.Cmd) error {
 	if ecmd.Process == nil {
-		le.Debugf("exec: %s", ecmd.String())
+		var stderrBuf bytes.Buffer
+		SetCmdLogger(le, ecmd, &stderrBuf)
+		le.WithField("work-dir", ecmd.Dir).
+			Debugf("running command: %s", ecmd.String())
 		if err := ecmd.Start(); err != nil {
 			return err
 		}
@@ -55,22 +77,25 @@ func StartAndWait(ctx context.Context, le *logrus.Entry, ecmd *exec.Cmd) error {
 // ExecCmd runs the command and collects the log output.
 func ExecCmd(le *logrus.Entry, cmd *exec.Cmd) error {
 	var stderrBuf bytes.Buffer
-
-	goLogger := le.WriterLevel(logrus.DebugLevel)
-	cmd.Stderr = io.MultiWriter(&stderrBuf, goLogger)
+	SetCmdLogger(le, cmd, &stderrBuf)
 	le.
 		WithField("work-dir", cmd.Dir).
 		Debugf("running command: %s", cmd.String())
 
 	err := cmd.Run()
-	if err != nil && (strings.HasPrefix(err.Error(), "exit status") || strings.HasPrefix(err.Error(), "err: exit status")) {
-		stderrLines := strings.Split(stderrBuf.String(), "\n")
-		errMsg := stderrLines[len(stderrLines)-1]
-		if len(errMsg) == 0 && len(stderrLines) > 1 {
-			errMsg = stderrLines[len(stderrLines)-2]
-		}
-		err = errors.New(errMsg)
-	}
+	err = InterpretCmdErr(err, stderrBuf)
 
+	return err
+}
+
+// StartCmd starts the command without waiting for it to complete and collects the log output.
+func StartCmd(le *logrus.Entry, cmd *exec.Cmd) error {
+	var stderrBuf bytes.Buffer
+	SetCmdLogger(le, cmd, &stderrBuf)
+	le.
+		WithField("work-dir", cmd.Dir).
+		Debugf("running command: %s", cmd.String())
+
+	err := cmd.Start()
 	return err
 }
