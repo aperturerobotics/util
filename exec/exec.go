@@ -13,8 +13,8 @@ import (
 )
 
 // NewCmd builds a new exec cmd with defaults.
-func NewCmd(proc string, args ...string) *exec.Cmd {
-	ecmd := exec.Command(proc, args...)
+func NewCmd(ctx context.Context, proc string, args ...string) *exec.Cmd {
+	ecmd := exec.CommandContext(ctx, proc, args...)
 	ecmd.Env = make([]string, len(os.Environ()))
 	copy(ecmd.Env, os.Environ())
 	ecmd.Stderr = os.Stderr
@@ -35,6 +35,7 @@ func StartAndWait(ctx context.Context, le *logrus.Entry, ecmd *exec.Cmd) error {
 	go func() {
 		outErr <- ecmd.Wait()
 	}()
+
 	select {
 	case <-ctx.Done():
 		_ = ecmd.Process.Kill()
@@ -70,5 +71,6 @@ func ExecCmd(le *logrus.Entry, cmd *exec.Cmd) error {
 		}
 		err = errors.New(errMsg)
 	}
+
 	return err
 }
