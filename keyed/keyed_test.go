@@ -40,7 +40,7 @@ func TestKeyed(t *testing.T) {
 
 	nsend := 101
 	keys := make([]string, nsend)
-	for i := 0; i < nsend; i++ {
+	for i := range nsend {
 		key := "routine-" + strconv.Itoa(i)
 		keys[i] = key
 	}
@@ -96,7 +96,7 @@ func TestKeyed_WithDelay(t *testing.T) {
 	var called, canceled atomic.Bool
 	calledCh := make(chan struct{})
 	canceledCh := make(chan struct{})
-	
+
 	k := NewKeyed(
 		func(key string) (Routine, *testData) {
 			return func(ctx context.Context) error {
@@ -120,10 +120,10 @@ func TestKeyed_WithDelay(t *testing.T) {
 	if !called.Load() || canceled.Load() {
 		t.Fail()
 	}
-	
+
 	// Remove the key, but it should still be running due to delay
 	_ = k.RemoveKey("test")
-	
+
 	// Create a timer to check if the routine is still running after some time
 	// This is one case where we need a timer since we're testing time-based behavior
 	timer := time.NewTimer(time.Millisecond * 100)
@@ -133,7 +133,7 @@ func TestKeyed_WithDelay(t *testing.T) {
 	case <-timer.C:
 		// Expected - routine should still be running
 	}
-	
+
 	// Now wait for cancellation to happen after the delay
 	<-canceledCh
 	if !called.Load() || !canceled.Load() {
@@ -151,13 +151,13 @@ func TestKeyed_WithDelay(t *testing.T) {
 	if !called.Load() || canceled.Load() {
 		t.Fail()
 	}
-	
+
 	// Remove the key, but it should still be running due to delay
 	_ = k.RemoveKey("test")
-	
+
 	// Set the key again before the delay expires
 	k.SetKey("test", false)
-	
+
 	// Verify the routine is still running and wasn't canceled
 	timer.Reset(time.Millisecond * 200)
 	select {
@@ -166,7 +166,7 @@ func TestKeyed_WithDelay(t *testing.T) {
 	case <-timer.C:
 		// Expected - routine should still be running
 	}
-	
+
 	if !called.Load() || canceled.Load() {
 		t.Fail()
 	}
@@ -264,9 +264,9 @@ func TestKeyedRefCount(t *testing.T) {
 
 	// Create a channel to wait for the routine to start
 	startCh := make(chan struct{})
-	
+
 	// Wait for the routine to start
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		if startCount.Load() == 1 {
 			close(startCh)
 			break
@@ -274,7 +274,7 @@ func TestKeyedRefCount(t *testing.T) {
 		// Small yield to allow other goroutines to run
 		runtime.Gosched()
 	}
-	
+
 	<-startCh
 	if startCount.Load() != 1 {
 		t.Fatal("routine should have started once")
@@ -285,7 +285,7 @@ func TestKeyedRefCount(t *testing.T) {
 
 	// Release one reference, routine should still be running
 	ref1.Release()
-	
+
 	// Verify state hasn't changed
 	if startCount.Load() != 1 {
 		t.Fatal("routine should have started once")
@@ -296,17 +296,17 @@ func TestKeyedRefCount(t *testing.T) {
 
 	// Release the second reference, routine should stop
 	ref2.Release()
-	
+
 	// Wait for the routine to stop
 	stopCh := make(chan struct{})
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		if stopCount.Load() == 1 {
 			close(stopCh)
 			break
 		}
 		runtime.Gosched()
 	}
-	
+
 	<-stopCh
 	if startCount.Load() != 1 {
 		t.Fatal("routine should have started once")
@@ -317,17 +317,17 @@ func TestKeyedRefCount(t *testing.T) {
 
 	// Add a reference again, routine should restart
 	ref3, _, _ := k.AddKeyRef("test-key")
-	
+
 	// Wait for the routine to start again
 	startCh2 := make(chan struct{})
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		if startCount.Load() == 2 {
 			close(startCh2)
 			break
 		}
 		runtime.Gosched()
 	}
-	
+
 	<-startCh2
 	if startCount.Load() != 2 {
 		t.Fatal("routine should have started twice")
@@ -338,17 +338,17 @@ func TestKeyedRefCount(t *testing.T) {
 
 	// Remove the key directly, should stop the routine
 	k.RemoveKey("test-key")
-	
+
 	// Wait for the routine to stop again
 	stopCh2 := make(chan struct{})
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		if stopCount.Load() == 2 {
 			close(stopCh2)
 			break
 		}
 		runtime.Gosched()
 	}
-	
+
 	<-stopCh2
 	if startCount.Load() != 2 {
 		t.Fatal("routine should have started twice")
@@ -387,7 +387,7 @@ func TestExitCallbacks(t *testing.T) {
 			}, &testData{}
 		},
 		WithExitLogger[string, *testData](le),
-		WithExitCb[string, *testData](exitCb),
+		WithExitCb(exitCb),
 	)
 
 	k.SetContext(ctx, true)
@@ -463,7 +463,7 @@ func TestRestartReset(t *testing.T) {
 			runtime.Gosched()
 		}
 	}()
-	
+
 	existed, restarted := k.RestartRoutine("test-key")
 	if !existed || !restarted {
 		t.Fatal("restart should have succeeded")
@@ -492,7 +492,7 @@ func TestRestartReset(t *testing.T) {
 			runtime.Gosched()
 		}
 	}()
-	
+
 	existed, reset := k.ResetRoutine("test-key")
 	if !existed || !reset {
 		t.Fatal("reset should have succeeded")
@@ -521,7 +521,7 @@ func TestRestartReset(t *testing.T) {
 			runtime.Gosched()
 		}
 	}()
-	
+
 	existed, reset = k.ResetRoutine("test-key", func(k string, v *testData) bool {
 		return v.value == "test-key-2"
 	})
@@ -552,7 +552,7 @@ func TestRestartReset(t *testing.T) {
 			runtime.Gosched()
 		}
 	}()
-	
+
 	resetCount2, totalCount := k.ResetAllRoutines()
 	if resetCount2 != 1 || totalCount != 1 {
 		t.Fatal("reset all should have reset one routine")
@@ -608,7 +608,7 @@ func TestContextCancellation(t *testing.T) {
 
 	// Wait for callback to be called
 	<-exitCh
-	
+
 	mu.Lock()
 	if len(exitErrors) != 1 {
 		t.Fatal("should have one exit error")
@@ -621,7 +621,7 @@ func TestContextCancellation(t *testing.T) {
 	// Set a new context
 	newCtx := context.Background()
 	k.SetContext(newCtx, true)
-	
+
 	// Create a channel for the second exit
 	exitCh2 := make(chan struct{})
 	var exitWg sync.WaitGroup
@@ -639,14 +639,14 @@ func TestContextCancellation(t *testing.T) {
 			runtime.Gosched()
 		}
 	}()
-	
+
 	// Cancel the key
 	k.RemoveKey("test-key")
-	
+
 	// Wait for callback to be called again
 	<-exitCh2
 	exitWg.Wait()
-	
+
 	mu.Lock()
 	if len(exitErrors) != 2 {
 		t.Fatal("should have two exit errors")
