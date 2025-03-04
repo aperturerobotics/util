@@ -75,3 +75,13 @@ func WithExitCb[K comparable, V any](cb func(key K, routine Routine, data V, err
 func WithExitLogger[K comparable, V any](le *logrus.Entry) Option[K, V] {
 	return WithExitCb(NewLogExitedCallback[K, V](le))
 }
+
+// WithExitLoggerWithName adds a exited callback which logs information about the exit with a name string.
+func WithExitLoggerWithName[K comparable, V any](le *logrus.Entry, name string) Option[K, V] {
+	return WithExitCb(NewLogExitedCallbackWithName[K, V](le, name))
+}
+
+// WithExitLoggerWithNameFn adds a exited callback which logs information about the exit with a name function.
+func WithExitLoggerWithNameFn[K comparable, V any](le *logrus.Entry, nameFn func(key K) string) Option[K, V] {
+	return WithExitCb(NewLogExitedCallbackWithNameFn[K, V](le, nameFn))
+}
