@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/backoff"
-	"github.com/aperturerobotics/util/broadcast"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/sirupsen/logrus"
 )
 

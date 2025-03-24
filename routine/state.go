@@ -4,7 +4,6 @@ import (
 	"context"
 
 	proto "github.com/aperturerobotics/protobuf-go-lite"
-	"github.com/aperturerobotics/util/broadcast"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,15 +11,13 @@ import (
 type StateRoutineContainer[T comparable] struct {
 	// rc is the routine container
 	rc *RoutineContainer
-	// bcast guards below fields
-	bcast broadcast.Broadcast
 	// compare compares if the two states are equivalent
 	// if nil restarts the routine every time SetState is called
 	compare func(t1, t2 T) bool
 	// stateRoutine contains the state routine function
 	stateRoutine StateRoutine[T]
 	// s contains the current state
-	// guarded by rc.mtx
+	// guarded by rc.bcast
 	s T
 }
 
@@ -81,7 +78,7 @@ func NewStateRoutineContainerWithLoggerVT[T proto.EqualVT[T]](le *logrus.Entry, 
 // GetState returns the immediate state in the StateRoutineContainer.
 func (s *StateRoutineContainer[T]) GetState() T {
 	var state T
-	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+	s.rc.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		state = s.s
 	})
 	return state
@@ -92,7 +89,7 @@ func (s *StateRoutineContainer[T]) GetState() T {
 // Returns if the state changed and if the routine is running.
 // If reset=true the existing routine was canceled or restarted.
 func (s *StateRoutineContainer[T]) SetState(state T) (waitReturn <-chan struct{}, changed, reset, running bool) {
-	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+	s.rc.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		waitReturn, changed, reset, running = s.setStateLocked(state, broadcast)
 	})
 	return
@@ -118,7 +115,7 @@ func (s *StateRoutineContainer[T]) setStateLocked(state T, broadcast func()) (wa
 // Returns the updated value and if the state changed.
 // If reset=true returns a channel which closes when the previous instance has exited.
 func (s *StateRoutineContainer[T]) SwapValue(cb func(val T) T) (nextState T, waitReturn <-chan struct{}, changed, reset, running bool) {
-	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+	s.rc.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		stateBefore := s.s
 		if cb != nil {
 			nextState = cb(stateBefore)
@@ -147,7 +144,7 @@ func (s *StateRoutineContainer[T]) SwapValue(cb func(val T) T) (nextState T, wai
 // If SetContext has not been called or SetState is empty, returns false for running.
 // Note: does not check if routine is equal to the current routine func (cannot compare generic funcs).
 func (s *StateRoutineContainer[T]) SetStateRoutine(routine StateRoutine[T]) (waitReturn <-chan struct{}, reset, running bool) {
-	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+	s.rc.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		s.stateRoutine = routine
 		waitReturn, reset, running = s.updateStateRoutineLocked(broadcast)
 	})
