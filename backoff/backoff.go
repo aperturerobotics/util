@@ -3,7 +3,7 @@ package backoff
 import (
 	"time"
 
-	"github.com/aperturerobotics/util/backoff/cbackoff"
+	backoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/pkg/errors"
 )
 

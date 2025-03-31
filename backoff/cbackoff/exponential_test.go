@@ -23,7 +23,7 @@ func TestBackOff(t *testing.T) {
 	exp.MaxElapsedTime = testMaxElapsedTime
 	exp.Reset()
 
-	var expectedResults = []time.Duration{500, 1000, 2000, 4000, 5000, 5000, 5000, 5000, 5000, 5000}
+	expectedResults := []time.Duration{500, 1000, 2000, 4000, 5000, 5000, 5000, 5000, 5000, 5000}
 	for i, d := range expectedResults {
 		expectedResults[i] = d * time.Millisecond
 	}
@@ -31,11 +31,11 @@ func TestBackOff(t *testing.T) {
 	for _, expected := range expectedResults {
 		assertEquals(t, expected, exp.currentInterval)
 		// Assert that the next backoff falls in the expected range.
-		var minInterval = expected - time.Duration(testRandomizationFactor*float64(expected))
-		var maxInterval = expected + time.Duration(testRandomizationFactor*float64(expected))
-		var actualInterval = exp.NextBackOff()
+		minInterval := expected - time.Duration(testRandomizationFactor*float64(expected))
+		maxInterval := expected + time.Duration(testRandomizationFactor*float64(expected))
+		actualInterval := exp.NextBackOff()
 		if !(minInterval <= actualInterval && actualInterval <= maxInterval) {
-			t.Error("error")
+			t.Fatal("error")
 		}
 	}
 }
@@ -64,18 +64,18 @@ func (c *TestClock) Now() time.Time {
 }
 
 func TestGetElapsedTime(t *testing.T) {
-	var exp = NewExponentialBackOff()
+	exp := NewExponentialBackOff()
 	exp.Clock = &TestClock{}
 	exp.Reset()
 
-	var elapsedTime = exp.GetElapsedTime()
+	elapsedTime := exp.GetElapsedTime()
 	if elapsedTime != time.Second {
-		t.Errorf("elapsedTime=%d", elapsedTime)
+		t.Fatalf("elapsedTime=%d", elapsedTime)
 	}
 }
 
 func TestMaxElapsedTime(t *testing.T) {
-	var exp = NewExponentialBackOff()
+	exp := NewExponentialBackOff()
 	exp.Clock = &TestClock{start: time.Time{}.Add(10000 * time.Second)}
 	// Change the currentElapsedTime to be 0 ensuring that the elapsed time will be greater
 	// than the max elapsed time.
@@ -84,7 +84,7 @@ func TestMaxElapsedTime(t *testing.T) {
 }
 
 func TestCustomStop(t *testing.T) {
-	var exp = NewExponentialBackOff()
+	exp := NewExponentialBackOff()
 	customStop := time.Minute
 	exp.Stop = customStop
 	exp.Clock = &TestClock{start: time.Time{}.Add(10000 * time.Second)}
@@ -114,7 +114,7 @@ func TestBackOffOverflow(t *testing.T) {
 
 func assertEquals(t *testing.T, expected, value time.Duration) {
 	if expected != value {
-		t.Errorf("got: %d, expected: %d", value, expected)
+		t.Fatalf("got: %d, expected: %d", value, expected)
 	}
 }
 
@@ -131,31 +131,31 @@ func TestNewExponentialBackOff(t *testing.T) {
 
 	// Check that the backOff object is not nil
 	if backOff == nil {
-		t.Error("Expected a non-nil ExponentialBackOff object, got nil")
+		t.Fatal("Expected a non-nil ExponentialBackOff object, got nil")
 	}
 
 	// Check that the custom options were applied correctly
 	if backOff.InitialInterval != 1*time.Second {
-		t.Errorf("Expected InitialInterval to be 1 second, got %v", backOff.InitialInterval)
+		t.Fatalf("Expected InitialInterval to be 1 second, got %v", backOff.InitialInterval)
 	}
 
 	if backOff.Multiplier != 2.0 {
-		t.Errorf("Expected Multiplier to be 2.0, got %v", backOff.Multiplier)
+		t.Fatalf("Expected Multiplier to be 2.0, got %v", backOff.Multiplier)
 	}
 
 	if backOff.MaxInterval != 10*time.Second {
-		t.Errorf("Expected MaxInterval to be 10 seconds, got %v", backOff.MaxInterval)
+		t.Fatalf("Expected MaxInterval to be 10 seconds, got %v", backOff.MaxInterval)
 	}
 
 	if backOff.MaxElapsedTime != 30*time.Second {
-		t.Errorf("Expected MaxElapsedTime to be 30 seconds, got %v", backOff.MaxElapsedTime)
+		t.Fatalf("Expected MaxElapsedTime to be 30 seconds, got %v", backOff.MaxElapsedTime)
 	}
 
 	if backOff.Stop != 0 {
-		t.Errorf("Expected Stop to be 0 (no stop), got %v", backOff.Stop)
+		t.Fatalf("Expected Stop to be 0 (no stop), got %v", backOff.Stop)
 	}
 
 	if backOff.Clock != SystemClock {
-		t.Errorf("Expected Clock to be SystemClock, got %v", backOff.Clock)
+		t.Fatalf("Expected Clock to be SystemClock, got %v", backOff.Clock)
 	}
 }

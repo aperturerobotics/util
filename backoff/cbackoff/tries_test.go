@@ -6,19 +6,19 @@ import (
 	"time"
 )
 
-func TestMaxTriesHappy(t *testing.T) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+func TestMaxTries(t *testing.T) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
 	max := 17 + r.Intn(13)
-	bo := WithMaxRetries(&ZeroBackOff{}, uint64(max))
+	bo := WithMaxRetries(&ZeroBackOff{}, uint64(max)) //nolint:gosec
 
 	// Load up the tries count, but reset should clear the record
-	for ix := 0; ix < max/2; ix++ {
+	for range max / 2 {
 		bo.NextBackOff()
 	}
 	bo.Reset()
 
 	// Now fill the tries count all the way up
-	for ix := 0; ix < max; ix++ {
+	for ix := range max {
 		d := bo.NextBackOff()
 		if d == Stop {
 			t.Errorf("returned Stop on try %d", ix)
@@ -27,7 +27,7 @@ func TestMaxTriesHappy(t *testing.T) {
 
 	// We have now called the BackOff max number of times, we expect
 	// the next result to be Stop, even if we try it multiple times
-	for ix := 0; ix < 7; ix++ {
+	for range 7 {
 		d := bo.NextBackOff()
 		if d != Stop {
 			t.Error("invalid next back off")

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	bo "github.com/aperturerobotics/util/backoff"
-	"github.com/aperturerobotics/util/backoff/cbackoff"
+	backoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/sirupsen/logrus"
 )
 
