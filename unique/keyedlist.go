@@ -1,7 +1,8 @@
 package unique
 
 import (
-	"golang.org/x/exp/maps"
+	"maps"
+	"slices"
 )
 
 // KeyedList watches a list of values for changes.
@@ -43,12 +44,12 @@ func NewKeyedList[K, V comparable](
 
 // GetKeys returns the list of keys stored in the list.
 func (l *KeyedList[K, V]) GetKeys() []K {
-	return maps.Keys(l.vals)
+	return slices.Collect(maps.Keys(l.vals))
 }
 
 // GetValues returns the list of values stored in the list.
 func (l *KeyedList[K, V]) GetValues() []V {
-	return maps.Values(l.vals)
+	return slices.Collect(maps.Values(l.vals))
 }
 
 // SetValues sets the list of values contained within the KeyedList.
