@@ -10,6 +10,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// DefaultDirPerms is the default permission used when creating directories.
+const DefaultDirPerms fs.FileMode = 0o755
+
 // CleanDir deletes the given dir.
 func CleanDir(path string) error {
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
@@ -25,7 +28,16 @@ func CleanCreateDir(path string) error {
 	if err := CleanDir(path); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(path, 0o755); err != nil {
+	if err := os.MkdirAll(path, DefaultDirPerms); err != nil {
+		return err
+	}
+	return nil
+}
+
+// CreateDir creates the given dir if it doesn't exist.
+// Uses os.MkdirAll with default permissions defined by DefaultDirPerms.
+func CreateDir(path string) error {
+	if err := os.MkdirAll(path, DefaultDirPerms); err != nil {
 		return err
 	}
 	return nil
