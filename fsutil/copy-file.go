@@ -53,7 +53,14 @@ func MoveFileToDir(dstDir, src string, perm os.FileMode) error {
 // CopyRecursive copies regular files & directories from src to dest.
 //
 // Calls the callback with the absolute path to the source file.
+// Ignore not-exist src dir by doing nothing.
 func CopyRecursive(dstDir, src string, cb fs.WalkDirFunc) error {
+	if _, err := os.Stat(src); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
 	return filepath.WalkDir(src, func(srcPath string, info fs.DirEntry, err error) error {
 		if err != nil {
 			return err
