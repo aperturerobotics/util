@@ -15,10 +15,14 @@ const DefaultDirPerms fs.FileMode = 0o755
 
 // CleanDir deletes the given dir.
 func CleanDir(path string) error {
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		if err := os.RemoveAll(path); err != nil {
-			return err
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return nil
 		}
+		return err
+	}
+	if err := os.RemoveAll(path); err != nil {
+		return err
 	}
 	return nil
 }
