@@ -4,11 +4,15 @@ github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20240713111131-be6bf89c3
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20240713111131-be6bf89c3008/go.mod h1:snaApCEDtrHHP6UWSLKiYNOZU9A5NyzccKenx9oZEzg=
 github.com/aperturerobotics/protobuf-go-lite v0.8.1 h1:CcBvqWOSep4VF3pPp+ZLcYQwPQu2kGOvL3bbF71bzKE=
 github.com/aperturerobotics/protobuf-go-lite v0.8.1/go.mod h1:6AD6TgBrC+aWprTirXrUASFvTbuIRAsuDLBNUthzcyA=
+github.com/aperturerobotics/protobuf-go-lite v0.9.0 h1:zY3+qG0FPZiqhmEMQbVPW3wFLJ//aitvYy1zdgO8Hwo=
+github.com/aperturerobotics/protobuf-go-lite v0.9.0/go.mod h1:fULrxQxEBWKQm7vvju9AfjTp9yfHoLgwMQWTiZQ2tg0=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fsnotify/fsnotify v1.8.0 h1:dAwr6QBTBZIkG8roQaJjGof0pp0EeF+tNV7YBP3F/8M=
 github.com/fsnotify/fsnotify v1.8.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
+github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S9k=
+github.com/fsnotify/fsnotify v1.9.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
