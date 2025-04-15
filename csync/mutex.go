@@ -86,9 +86,10 @@ func (m *Mutex) Lock(ctx context.Context) (func(), error) {
 		})
 
 		nstatus := status.Load()
-		if nstatus == 1 {
+		switch nstatus {
+		case 1:
 			return release, nil
-		} else if nstatus == 2 {
+		case 2:
 			return nil, context.Canceled
 		}
 	}

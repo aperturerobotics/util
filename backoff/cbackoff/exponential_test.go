@@ -34,7 +34,7 @@ func TestBackOff(t *testing.T) {
 		minInterval := expected - time.Duration(testRandomizationFactor*float64(expected))
 		maxInterval := expected + time.Duration(testRandomizationFactor*float64(expected))
 		actualInterval := exp.NextBackOff()
-		if !(minInterval <= actualInterval && actualInterval <= maxInterval) {
+		if minInterval > actualInterval || actualInterval > maxInterval {
 			t.Fatal("error")
 		}
 	}

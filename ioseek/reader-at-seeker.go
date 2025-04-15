@@ -52,7 +52,7 @@ func (r *ReaderAtSeeker) Seek(offset int64, whence int) (int64, error) {
 
 // Read reads up to len(p) bytes into p.
 func (r *ReaderAtSeeker) Read(p []byte) (n int, err error) {
-	n, err = r.ReaderAt.ReadAt(p, r.offset)
+	n, err = r.ReadAt(p, r.offset)
 	r.offset += int64(n)
 	return n, err
 }
