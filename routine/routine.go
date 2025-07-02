@@ -164,11 +164,8 @@ func (k *RoutineContainer) setRoutineLocked(routine Routine, broadcast func()) (
 	if prevRoutine != nil {
 		wasReset = k.ctx != nil && !prevRoutine.exited
 		prevExitedCh = prevRoutine.exitedCh
-		if prevRoutine.ctxCancel != nil {
-			prevRoutine.ctxCancel()
-			prevRoutine.ctxCancel = nil
-		}
 		k.routine = nil
+		prevRoutine.stop()
 	}
 
 	if routine != nil {
@@ -281,13 +278,12 @@ func (r *runningRoutine) start(ctx context.Context, waitCh <-chan struct{}, forc
 	r.success, r.exited = false, false
 	r.exitedCh = exitedCh
 	r.ctx, r.ctxCancel = context.WithCancel(ctx)
-	go r.execute(r.ctx, r.ctxCancel, exitedCh, waitCh)
+	go r.execute(r.ctx, exitedCh, waitCh)
 }
 
 // execute executes the routine.
 func (r *runningRoutine) execute(
 	ctx context.Context,
-	cancel context.CancelFunc,
 	exitedCh chan struct{},
 	waitCh <-chan struct{},
 ) {
@@ -305,7 +301,6 @@ func (r *runningRoutine) execute(
 	if err == nil {
 		err = r.routine(ctx)
 	}
-	cancel()
 	close(exitedCh)
 
 	r.r.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
