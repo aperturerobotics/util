@@ -155,7 +155,7 @@ func (r *RefCount[T]) AddRef(cb func(resolved bool, val T, err error)) *Ref[T] {
 	r.refs[nref] = struct{}{}
 	if len(r.refs) == 1 && !r.resolved {
 		r.startResolveLocked()
-	} else if r.resolved {
+	} else if r.resolved && nref.cb != nil {
 		nref.cb(true, r.value, r.valueErr)
 	}
 	r.mtx.Unlock()
@@ -255,6 +255,7 @@ func (r *RefCount[T]) ResolveWithReleased(ctx context.Context, released func()) 
 // The context will be canceled if the value is removed / changed.
 // Return context.Canceled if the context is canceled.
 // The callback may be restarted if the context is canceled and a new value is resolved.
+// ctx and cb cannot be nil
 func (r *RefCount[T]) Access(ctx context.Context, cb func(ctx context.Context, val T) error) error {
 	var bcast broadcast.Broadcast
 	var currVal T
@@ -311,7 +312,6 @@ func (r *RefCount[T]) Access(ctx context.Context, cb func(ctx context.Context, v
 
 			cbErr := func() error {
 				defer cbCancel()
-
 				return cb(cbCtx, val)
 			}()
 
