@@ -13,6 +13,7 @@ Various utilities for Go and TypeScript including:
 
  - [backoff]: configurable backoff
  - [broadcast]: channel-based broadcast (similar to sync.Cond)
+ - [bufio]: SplitOnNul is a bufio.SplitFunc that splits on NUL characters
  - [ccall]: call a set of functions concurrently and wait for error or exit
  - [ccontainer]: concurrent container for objects
  - [commonprefix]: find common prefix between strings
@@ -22,15 +23,20 @@ Various utilities for Go and TypeScript including:
  - [debounce-fswatcher]: debounce fs watcher events
  - [enabled]: three-way boolean proto enum
  - [exec]: wrapper around Go os exec
+ - [filter]: filter strings by regex, prefix, suffix, etc.
  - [fsutil]: utilities for os filesystem
+ - [gitcmd]: running git from Go
  - [gitroot]: git repository root finder
  - [httplog/fetch]: JS Fetch API wrapper with logging for WASM
  - [httplog]: HTTP request and response logging utilities
  - [iocloser]: wrap reader/writer with a close function
- - [iowriter]: io.Writer implementation with callback function
+ - [ioproxy]: read/write between two different Go streams
+ - [ioseek]: ReaderAtSeeker wraps an io.ReaderAt to provide io.Seeker behavior
  - [iosizer]: read/writer with metrics for size
+ - [iowriter]: io.Writer implementation with callback function
  - [js/fetch]: Fetch API wrapper for WASM
  - [js/readable-stream]: ReadableStream wrapper for WASM
+ - [js]: syscall/js utils for go
  - [keyed]: key/value based routine management
  - [linkedlist]: linked list with head/tail
  - [memo]: memoize a function: call it once and remember results
@@ -38,12 +44,16 @@ Various utilities for Go and TypeScript including:
  - [prng]: psuedorandom generator with seed
  - [promise]: promise mechanics for Go (like JS)
  - [refcount]: reference counter ccontainer
+ - [result]: contains the result tuple from an operation
+ - [retry]: retry an operation in Go
  - [routine]: start, stop, restart, reset a goroutine
  - [scrub]: zero a buffer after usage
  - [unique]: deduplicated list of items by key
+ - [vmime]: validate mime type
 
 [backoff]: ./backoff
 [broadcast]: ./broadcast
+[bufio]: ./bufio
 [ccall]: ./ccall
 [ccontainer]: ./ccontainer
 [commonprefix]: ./commonprefix
@@ -51,15 +61,22 @@ Various utilities for Go and TypeScript including:
 [cqueue]: ./cqueue
 [csync]: ./csync
 [debounce-fswatcher]: ./debounce-fswatcher
+[enabled]: ./enabled
 [exec]: ./exec
+[filter]: ./filter
 [fsutil]: ./fsutil
+[gitcmd]: ./gitcmd
+[gitroot]: ./gitroot
 [httplog/fetch]: ./httplog/fetch
 [httplog]: ./httplog
 [iocloser]: ./iocloser
-[iowriter]: ./iowriter
+[ioproxy]: ./ioproxy
+[ioseek]: ./ioseek
 [iosizer]: ./iosizer
+[iowriter]: ./iowriter
 [js/fetch]: ./js/fetch
 [js/readable-stream]: ./js/readable-stream
+[js]: ./js
 [keyed]: ./keyed
 [linkedlist]: ./linkedlist
 [memo]: ./memo
@@ -67,10 +84,11 @@ Various utilities for Go and TypeScript including:
 [prng]: ./prng
 [promise]: ./promise
 [refcount]: ./refcount
+[result]: ./result
+[retry]: ./retry
 [routine]: ./routine
 [scrub]: ./scrub
 [unique]: ./unique
-[vmime]: ./vmime
 [vmime]: ./vmime
 
 ## License
