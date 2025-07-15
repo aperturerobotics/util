@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { validateStringFilter, checkStringFilterMatch } from './filter.js'
-import { StringFilter } from './filter.pb.js'
 
 describe('validateStringFilter', () => {
   it('should return null for null/undefined filter', () => {
@@ -70,12 +69,18 @@ describe('checkStringFilterMatch', () => {
 
   describe('values filter', () => {
     it('should match when value is in values array', () => {
-      expect(checkStringFilterMatch({ values: ['test1', 'test2'] }, 'test1')).toBe(true)
-      expect(checkStringFilterMatch({ values: ['test1', 'test2'] }, 'test2')).toBe(true)
+      expect(
+        checkStringFilterMatch({ values: ['test1', 'test2'] }, 'test1'),
+      ).toBe(true)
+      expect(
+        checkStringFilterMatch({ values: ['test1', 'test2'] }, 'test2'),
+      ).toBe(true)
     })
 
     it('should not match when value is not in values array', () => {
-      expect(checkStringFilterMatch({ values: ['test1', 'test2'] }, 'test3')).toBe(false)
+      expect(
+        checkStringFilterMatch({ values: ['test1', 'test2'] }, 'test3'),
+      ).toBe(false)
     })
 
     it('should return true when values array is empty', () => {
@@ -101,11 +106,15 @@ describe('checkStringFilterMatch', () => {
 
   describe('hasPrefix filter', () => {
     it('should match when string has prefix', () => {
-      expect(checkStringFilterMatch({ hasPrefix: 'test' }, 'test123')).toBe(true)
+      expect(checkStringFilterMatch({ hasPrefix: 'test' }, 'test123')).toBe(
+        true,
+      )
     })
 
     it('should not match when string does not have prefix', () => {
-      expect(checkStringFilterMatch({ hasPrefix: 'test' }, 'abc123')).toBe(false)
+      expect(checkStringFilterMatch({ hasPrefix: 'test' }, 'abc123')).toBe(
+        false,
+      )
     })
   })
 
@@ -115,7 +124,9 @@ describe('checkStringFilterMatch', () => {
     })
 
     it('should not match when string does not have suffix', () => {
-      expect(checkStringFilterMatch({ hasSuffix: '123' }, 'test456')).toBe(false)
+      expect(checkStringFilterMatch({ hasSuffix: '123' }, 'test456')).toBe(
+        false,
+      )
     })
   })
 
@@ -131,27 +142,42 @@ describe('checkStringFilterMatch', () => {
 
   describe('combined filters', () => {
     it('should match when all filters match', () => {
-      expect(checkStringFilterMatch({ 
-        notEmpty: true, 
-        hasPrefix: 'test', 
-        hasSuffix: '123' 
-      }, 'test123')).toBe(true)
+      expect(
+        checkStringFilterMatch(
+          {
+            notEmpty: true,
+            hasPrefix: 'test',
+            hasSuffix: '123',
+          },
+          'test123',
+        ),
+      ).toBe(true)
     })
 
     it('should not match when any filter fails', () => {
-      expect(checkStringFilterMatch({ 
-        notEmpty: true, 
-        hasPrefix: 'test', 
-        hasSuffix: '456' 
-      }, 'test123')).toBe(false)
+      expect(
+        checkStringFilterMatch(
+          {
+            notEmpty: true,
+            hasPrefix: 'test',
+            hasSuffix: '456',
+          },
+          'test123',
+        ),
+      ).toBe(false)
     })
 
     it('should handle complex combination', () => {
-      expect(checkStringFilterMatch({ 
-        re: '^test', 
-        contains: '12', 
-        hasSuffix: '3' 
-      }, 'test123')).toBe(true)
+      expect(
+        checkStringFilterMatch(
+          {
+            re: '^test',
+            contains: '12',
+            hasSuffix: '3',
+          },
+          'test123',
+        ),
+      ).toBe(true)
     })
   })
 })
