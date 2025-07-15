@@ -34,7 +34,7 @@
     "format:js:all": "prettier --write './!(vendor|dist)/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
     "gen": "make genproto",
     "test": "make test && npm run check && npm run test:js",
-    "test:js": "echo No JS tests.",
+    "test:js": "vitest run && npm run typecheck",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
     "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.cjs ./",
@@ -46,17 +46,19 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.22.1",
+    "@aptre/common": "^0.22.7",
     "depcheck": "^1.4.7",
+    "happy-dom": "^18.0.1",
     "prettier": "^3.2.5",
     "rimraf": "^6.0.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@aptre/protobuf-es-lite": "^0.4.7",
-    "starpc": "^0.39.0"
+    "@aptre/protobuf-es-lite": "^0.5.2",
+    "starpc": "^0.39.5"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.4.9"
+    "@aptre/protobuf-es-lite": "0.5.2"
   }
 }
