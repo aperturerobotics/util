@@ -2,7 +2,7 @@ module github.com/aperturerobotics/util
 
 go 1.24
 
-toolchain go1.24.4
+toolchain go1.24.5
 
 require (
 	github.com/aperturerobotics/common v0.22.7 // latest
