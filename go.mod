@@ -2,12 +2,12 @@ module github.com/aperturerobotics/util
 
 go 1.24
 
-toolchain go1.24.5
+toolchain go1.24.6
 
 require (
-	github.com/aperturerobotics/common v0.22.7 // latest
+	github.com/aperturerobotics/common v0.22.10 // latest
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20240713111131-be6bf89c3008 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.9.1 // latest
+	github.com/aperturerobotics/protobuf-go-lite v0.11.0 // latest
 )
 
 require (
