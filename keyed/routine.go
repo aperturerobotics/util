@@ -85,6 +85,10 @@ func (r *runningRoutine[K, V]) start(ctx context.Context, waitCh <-chan struct{}
 	if r.ctxCancel != nil {
 		r.ctxCancel()
 	}
+	if r.k.ctx == nil || r.k.ctx.Err() != nil {
+		// root context is canceled or nil, don't retry.
+		return
+	}
 	exitedCh := make(chan struct{})
 	r.err = nil
 	r.success, r.exited = false, false
@@ -130,12 +134,12 @@ func (r *runningRoutine[K, V]) execute(
 			}
 			if r.success {
 				r.retryBo.Reset()
-			} else if r.k.routines[r.key] == r {
+			} else if r.k.routines[r.key] == r && r.k.ctx != nil && r.k.ctx.Err() == nil {
 				dur := r.retryBo.NextBackOff()
 				if dur != backoff.Stop {
 					r.deferRetry = time.AfterFunc(dur, func() {
 						r.k.mtx.Lock()
-						if r.k.ctx != nil && r.k.routines[r.key] == r && r.exited {
+						if r.k.ctx != nil && r.k.routines[r.key] == r && r.exited && r.k.ctx.Err() == nil {
 							r.start(r.k.ctx, r.exitedCh, true)
 						}
 						r.k.mtx.Unlock()

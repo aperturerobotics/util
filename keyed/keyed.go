@@ -222,7 +222,7 @@ func (k *Keyed[K, V]) SyncKeys(keys []K, restart bool) (added, removed []K) {
 		}
 
 		routines[key] = v
-		if (!existed || restart) && k.ctx != nil {
+		if (!existed || restart) && k.ctx != nil && k.ctx.Err() == nil {
 			v.start(k.ctx, v.exitedCh, false)
 		}
 	}
