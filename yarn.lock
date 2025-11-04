@@ -833,7 +833,7 @@
     "@typescript-eslint/types" "8.46.3"
     eslint-visitor-keys "^4.2.1"
 
-"@typescript/vfs@1.6.2", "@typescript/vfs@^1.5.0":
+"@typescript/vfs@^1.5.0":
   version "1.6.2"
   resolved "https://registry.yarnpkg.com/@typescript/vfs/-/vfs-1.6.2.tgz#e66883c5a8dcc5d2794dfa05c8f9749d767219f8"
   integrity sha512-hoBwJwcbKHmvd2QVebiytN1aELvpk9B74B4L1mFm/XT1Q/VOYAWl2vQ9AWRFtQq8zmz6enTpfTV8WRc4ATjW/g==
