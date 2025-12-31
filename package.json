@@ -46,7 +46,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.22.7",
+    "@aptre/common": "^0.24.0",
     "depcheck": "^1.4.7",
     "happy-dom": "^20.0.0",
     "prettier": "^3.2.5",
@@ -56,7 +56,7 @@
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.5.2",
-    "starpc": "^0.39.5"
+    "starpc": "^0.41.0"
   },
   "resolutions": {
     "@aptre/protobuf-es-lite": "0.5.2"
