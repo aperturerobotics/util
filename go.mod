@@ -2,7 +2,7 @@ module github.com/aperturerobotics/util
 
 go 1.25
 
-toolchain go1.25.5
+toolchain go1.25.6
 
 require (
 	github.com/aperturerobotics/common v0.24.0 // latest
@@ -13,7 +13,7 @@ require (
 require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 )
 
-require golang.org/x/sys v0.34.0 // indirect
+require golang.org/x/sys v0.34.0
