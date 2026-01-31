@@ -2,8 +2,8 @@ github.com/aperturerobotics/abseil-cpp v0.0.0-20260130220554-305ed0ea7006 h1:Uva
 github.com/aperturerobotics/abseil-cpp v0.0.0-20260130220554-305ed0ea7006/go.mod h1:lNSJTKECIUFAnfeSqy01kXYTYe1BHubW7198jNX3nEw=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
 github.com/aperturerobotics/cli v1.1.0/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
-github.com/aperturerobotics/common v0.26.4 h1:m3JXf66N2aYJ9iQJ2jbA1QNmBIrP1vRUgEEUM5T4tWo=
-github.com/aperturerobotics/common v0.26.4/go.mod h1:wfotho2T+/OuZmczR5CTJstJskYVd2QFgH/JEhrRmeQ=
+github.com/aperturerobotics/common v0.26.5 h1:6qrc2vyNj+ajcfRvI2ZH75L/CBLq/il5yZavAI3+ubE=
+github.com/aperturerobotics/common v0.26.5/go.mod h1:wfotho2T+/OuZmczR5CTJstJskYVd2QFgH/JEhrRmeQ=
 github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260131040241-876a19740f10 h1:4tzxzV8dAoGmVi3bUmZvEiXT0W/KYVAXdqEOw792J7Q=
 github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260131040241-876a19740f10/go.mod h1:vEq8i7EKb32+KXGtIEZjjhNns+BdsL2dUMw4uhy3578=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20251104042408-0c9eb8a3f726 h1:4B1F0DzuqPzb6WqgCjWaqDD7JU9RDsevQG5OP0DFBgs=
