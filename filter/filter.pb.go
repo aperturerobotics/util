@@ -486,6 +486,7 @@ func (x *StringFilter) MarshalProtoText() string {
 func (x *StringFilter) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *StringFilter) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

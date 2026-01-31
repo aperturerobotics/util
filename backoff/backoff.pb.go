@@ -261,6 +261,7 @@ func (this *Backoff) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Exponential) EqualVT(that *Exponential) bool {
 	if this == that {
 		return true
@@ -292,6 +293,7 @@ func (this *Exponential) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Constant) EqualVT(that *Constant) bool {
 	if this == that {
 		return true
@@ -752,6 +754,7 @@ func (m *Constant) SizeVT() (n int) {
 func (x BackoffKind) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *Backoff) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Backoff {")
@@ -785,6 +788,7 @@ func (x *Backoff) MarshalProtoText() string {
 func (x *Backoff) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Exponential) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Exponential {")
@@ -830,6 +834,7 @@ func (x *Exponential) MarshalProtoText() string {
 func (x *Exponential) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Constant) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Constant {")
@@ -847,6 +852,7 @@ func (x *Constant) MarshalProtoText() string {
 func (x *Constant) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Backoff) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -989,6 +995,7 @@ func (m *Backoff) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Exponential) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1119,6 +1126,7 @@ func (m *Exponential) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Constant) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

@@ -46,7 +46,7 @@ jobs:
         run: bun run build
 
       - name: Test Go
-        run: make test
+        run: bun run go:aptre -- test
 
       - name: Test Js
         run: bun test:js
@@ -66,4 +66,4 @@ jobs:
       # Issue: https://github.com/agnivade/wasmbrowsertest/issues/60
       # Remove the || true once fixed.
       - name: Test with chrome
-        run: make test-browser || true
+        run: bun run go:aptre -- test --browser || true

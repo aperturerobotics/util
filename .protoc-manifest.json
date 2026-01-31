@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "protocFlagsHash": "6987806a0c77976bc9b9b6933b5f5fd9b28c535361238f8952246b39307d65cb",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.11.0,starpc=v0.41.0,protobuf-es-lite=^0.5.2",
+  "packages": {
+    "github.com/aperturerobotics/util/backoff": {
+      "hash": "cd4e45905244ee26382b115ed6c5cb835e15b65312a7a744913745c35c81aeb6",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/util/backoff/backoff.pb.cc",
+        "vendor/github.com/aperturerobotics/util/backoff/backoff.pb.go",
+        "vendor/github.com/aperturerobotics/util/backoff/backoff.pb.h",
+        "vendor/github.com/aperturerobotics/util/backoff/backoff.pb.ts",
+        "backoff/backoff.pb.cc",
+        "backoff/backoff.pb.go",
+        "backoff/backoff.pb.h",
+        "backoff/backoff.pb.ts"
+      ],
+      "protoFiles": [
+        "backoff/backoff.proto"
+      ],
+      "lastGenerated": "2026-01-30T20:47:21.636622-08:00"
+    },
+    "github.com/aperturerobotics/util/enabled": {
+      "hash": "c0b8dc6d78b07acd6742c58109e9bdedf887006d0cf5e4e593085d59c9e305c3",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/util/enabled/enabled.pb.cc",
+        "vendor/github.com/aperturerobotics/util/enabled/enabled.pb.go",
+        "vendor/github.com/aperturerobotics/util/enabled/enabled.pb.h",
+        "vendor/github.com/aperturerobotics/util/enabled/enabled.pb.ts",
+        "enabled/enabled.pb.cc",
+        "enabled/enabled.pb.go",
+        "enabled/enabled.pb.h",
+        "enabled/enabled.pb.ts"
+      ],
+      "protoFiles": [
+        "enabled/enabled.proto"
+      ],
+      "lastGenerated": "2026-01-30T20:47:21.636989-08:00"
+    },
+    "github.com/aperturerobotics/util/filter": {
+      "hash": "6758d12ebb0078c9cacd4952c7055728c64fce90af772d98ac653bdcb4939543",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/util/filter/filter.pb.cc",
+        "vendor/github.com/aperturerobotics/util/filter/filter.pb.go",
+        "vendor/github.com/aperturerobotics/util/filter/filter.pb.h",
+        "vendor/github.com/aperturerobotics/util/filter/filter.pb.ts",
+        "filter/filter.pb.cc",
+        "filter/filter.pb.go",
+        "filter/filter.pb.h",
+        "filter/filter.pb.ts"
+      ],
+      "protoFiles": [
+        "filter/filter.proto"
+      ],
+      "lastGenerated": "2026-01-30T20:47:21.637332-08:00"
+    }
+  }
+}
