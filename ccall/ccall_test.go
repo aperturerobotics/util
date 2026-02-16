@@ -12,7 +12,7 @@ func TestCallConcurrently_Success(t *testing.T) {
 	var accum atomic.Int32
 
 	var fns []CallConcurrentlyFunc
-	for i := int32(0); i < 10; i++ {
+	for i := range int32(10) {
 		x := i // copy value
 		fns = append(fns, func(ctx context.Context) error {
 			accum.Add(x)
@@ -34,7 +34,7 @@ func TestCallConcurrently_Err(t *testing.T) {
 	errRet := errors.New("test error")
 
 	var fns []CallConcurrentlyFunc
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		i := i
 		fns = append(fns, func(ctx context.Context) error {
 			if i == 5 || i == 8 {

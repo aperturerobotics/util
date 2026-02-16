@@ -4,7 +4,7 @@ package scrub
 // Prevents reading sensitive data before memory is overwritten.
 func Scrub(buf []byte) {
 	// compiler optimizes this to memset
-	for i := 0; i < len(buf); i++ {
+	for i := range buf {
 		buf[i] = 0
 	}
 }

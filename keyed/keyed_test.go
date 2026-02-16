@@ -452,9 +452,7 @@ func TestRestartReset(t *testing.T) {
 	// Test restart
 	startCh2 := make(chan struct{})
 	var startWg sync.WaitGroup
-	startWg.Add(1)
-	go func() {
-		defer startWg.Done()
+	startWg.Go(func() {
 		for {
 			if startCount.Load() == 2 {
 				close(startCh2)
@@ -462,7 +460,7 @@ func TestRestartReset(t *testing.T) {
 			}
 			runtime.Gosched()
 		}
-	}()
+	})
 
 	existed, restarted := k.RestartRoutine("test-key")
 	if !existed || !restarted {
@@ -481,9 +479,7 @@ func TestRestartReset(t *testing.T) {
 	// Test reset
 	startCh3 := make(chan struct{})
 	var startWg2 sync.WaitGroup
-	startWg2.Add(1)
-	go func() {
-		defer startWg2.Done()
+	startWg2.Go(func() {
 		for {
 			if startCount.Load() == 3 {
 				close(startCh3)
@@ -491,7 +487,7 @@ func TestRestartReset(t *testing.T) {
 			}
 			runtime.Gosched()
 		}
-	}()
+	})
 
 	existed, reset := k.ResetRoutine("test-key")
 	if !existed || !reset {
@@ -510,9 +506,7 @@ func TestRestartReset(t *testing.T) {
 	// Test conditional reset
 	startCh4 := make(chan struct{})
 	var startWg3 sync.WaitGroup
-	startWg3.Add(1)
-	go func() {
-		defer startWg3.Done()
+	startWg3.Go(func() {
 		for {
 			if startCount.Load() == 4 {
 				close(startCh4)
@@ -520,7 +514,7 @@ func TestRestartReset(t *testing.T) {
 			}
 			runtime.Gosched()
 		}
-	}()
+	})
 
 	existed, reset = k.ResetRoutine("test-key", func(k string, v *testData) bool {
 		return v.value == "test-key-2"
@@ -541,9 +535,7 @@ func TestRestartReset(t *testing.T) {
 	// Test reset all
 	startCh5 := make(chan struct{})
 	var startWg4 sync.WaitGroup
-	startWg4.Add(1)
-	go func() {
-		defer startWg4.Done()
+	startWg4.Go(func() {
 		for {
 			if startCount.Load() == 5 {
 				close(startCh5)
@@ -551,7 +543,7 @@ func TestRestartReset(t *testing.T) {
 			}
 			runtime.Gosched()
 		}
-	}()
+	})
 
 	resetCount2, totalCount := k.ResetAllRoutines()
 	if resetCount2 != 1 || totalCount != 1 {
@@ -625,9 +617,7 @@ func TestContextCancellation(t *testing.T) {
 	// Create a channel for the second exit
 	exitCh2 := make(chan struct{})
 	var exitWg sync.WaitGroup
-	exitWg.Add(1)
-	go func() {
-		defer exitWg.Done()
+	exitWg.Go(func() {
 		for {
 			mu.Lock()
 			count := len(exitErrors)
@@ -638,7 +628,7 @@ func TestContextCancellation(t *testing.T) {
 			}
 			runtime.Gosched()
 		}
-	}()
+	})
 
 	// Cancel the key
 	k.RemoveKey("test-key")

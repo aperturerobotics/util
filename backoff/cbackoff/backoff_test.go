@@ -11,7 +11,7 @@ func TestNextBackOffMillis(t *testing.T) {
 }
 
 func subtestNextBackOff(t *testing.T, expectedValue time.Duration, backOffPolicy BackOff) {
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		next := backOffPolicy.NextBackOff()
 		if next != expectedValue {
 			t.Errorf("got: %d expected: %d", next, expectedValue)

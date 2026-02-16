@@ -26,9 +26,7 @@ func NewKeyedMap[K, V comparable](
 	initial map[K]V,
 ) *KeyedMap[K, V] {
 	vals := make(map[K]V, len(initial))
-	for k, v := range initial {
-		vals[k] = v
-	}
+	maps.Copy(vals, initial)
 
 	return &KeyedMap[K, V]{
 		cmp:     cmp,

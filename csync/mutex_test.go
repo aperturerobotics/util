@@ -12,7 +12,7 @@ import (
 // GOMAXPROCS=10 go test
 
 func HammerMutex(m *Mutex, loops int, cdone chan bool) {
-	for i := 0; i < loops; i++ {
+	for range loops {
 		release, err := m.Lock(context.Background())
 		if err != nil {
 			panic(err)
@@ -46,10 +46,10 @@ func TestMutex(t *testing.T) {
 	release2()
 
 	c := make(chan bool)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go HammerMutex(m, 1000, c)
 	}
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-c
 	}
 }
@@ -124,7 +124,7 @@ func benchmarkMutex(b *testing.B, slack, work bool) {
 			}
 			release()
 			if work {
-				for i := 0; i < 100; i++ {
+				for range 100 {
 					foo *= 2
 					foo /= 2
 				}

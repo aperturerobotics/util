@@ -29,7 +29,7 @@ func TestAtomicLIFO_ConsecutivePushesAndPops(t *testing.T) {
 	lifo := &AtomicLIFO[int]{}
 	const count = 1000
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		lifo.Push(i)
 	}
 

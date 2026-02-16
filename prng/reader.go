@@ -34,16 +34,13 @@ func (r *randReader) Read(p []byte) (n int, err error) {
 		if r.off == 0 {
 			// Generate a new random uint64 value and store it in the buffer.
 			val := r.src.Uint64()
-			for i := 0; i < 8; i++ {
+			for i := range 8 {
 				r.buf[i] = byte(val >> (i * 8))
 			}
 		}
 
 		// Determine how many bytes to copy from the buffer.
-		remaining := len(p) - n
-		if remaining > 8-r.off {
-			remaining = 8 - r.off
-		}
+		remaining := min(len(p)-n, 8-r.off)
 
 		// Copy bytes from the buffer into p.
 		copy(p[n:], r.buf[r.off:r.off+remaining])

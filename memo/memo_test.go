@@ -16,7 +16,7 @@ func TestMemoizeFunc(t *testing.T) {
 		return n, nil
 	}
 	memoFn := MemoizeFunc(fn)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			_, _ = memoFn()
 		}()

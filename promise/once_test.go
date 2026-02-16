@@ -81,10 +81,8 @@ func TestOnce(t *testing.T) {
 
 		ctx := context.Background()
 		var wg sync.WaitGroup
-		for i := 0; i < 10; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+		for range 10 {
+			wg.Go(func() {
 				result, err := o.Resolve(ctx)
 				if err != nil {
 					t.Errorf("Unexpected error: %v", err)
@@ -92,7 +90,7 @@ func TestOnce(t *testing.T) {
 				if result != 42 {
 					t.Errorf("Expected 42, got %d", result)
 				}
-			}()
+			})
 		}
 		wg.Wait()
 

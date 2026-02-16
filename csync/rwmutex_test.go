@@ -29,18 +29,18 @@ func doTestParallelReaders(t *testing.T, numReaders, gomaxprocs int) {
 	clocked := make(chan bool)
 	cunlock := make(chan bool)
 	cdone := make(chan error)
-	for i := 0; i < numReaders; i++ {
+	for range numReaders {
 		go parallelReader(&m, clocked, cunlock, cdone)
 	}
 	// Wait for all parallel RLock()s to succeed.
-	for i := 0; i < numReaders; i++ {
+	for range numReaders {
 		<-clocked
 	}
-	for i := 0; i < numReaders; i++ {
+	for range numReaders {
 		cunlock <- true
 	}
 	// Wait for the goroutines to finish.
-	for i := 0; i < numReaders; i++ {
+	for range numReaders {
 		if err := <-cdone; err != nil {
 			t.Fatal(err.Error())
 		}
@@ -55,7 +55,7 @@ func TestParallelReaders(t *testing.T) {
 }
 
 func reader(rwm *RWMutex, num_iterations int, activity *int32, cdone chan error) {
-	for i := 0; i < num_iterations; i++ {
+	for range num_iterations {
 		rel, err := rwm.Lock(context.Background(), false)
 		if err != nil {
 			cdone <- err
@@ -65,7 +65,7 @@ func reader(rwm *RWMutex, num_iterations int, activity *int32, cdone chan error)
 			rel()
 			panic(fmt.Sprintf("wlock(%d)\n", n))
 		}
-		for i := 0; i < 100; i++ {
+		for range 100 {
 		}
 		atomic.AddInt32(activity, -1)
 		rel()
@@ -74,7 +74,7 @@ func reader(rwm *RWMutex, num_iterations int, activity *int32, cdone chan error)
 }
 
 func writer(rwm *RWMutex, num_iterations int, activity *int32, cdone chan error) {
-	for i := 0; i < num_iterations; i++ {
+	for range num_iterations {
 		rel, err := rwm.Lock(context.Background(), true)
 		if err != nil {
 			cdone <- err
@@ -84,7 +84,7 @@ func writer(rwm *RWMutex, num_iterations int, activity *int32, cdone chan error)
 			rel()
 			panic(fmt.Sprintf("wlock(%d)\n", n))
 		}
-		for i := 0; i < 100; i++ {
+		for range 100 {
 		}
 		atomic.AddInt32(activity, -10000)
 		rel()
@@ -181,7 +181,7 @@ func TestRLocker(t *testing.T) {
 	n := 10
 	var rel func()
 	go func() {
-		for i := 0; i < n; i++ {
+		for range n {
 			rl.Lock()
 			rl.Lock()
 			rlocked <- true
@@ -190,7 +190,7 @@ func TestRLocker(t *testing.T) {
 			wlocked <- err
 		}
 	}()
-	for i := 0; i < n; i++ {
+	for range n {
 		<-rlocked
 		rl.Unlock()
 		select {
