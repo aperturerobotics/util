@@ -16,6 +16,6 @@ require (
 require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.9.5-0.20260226151524-34027eac4204
 	golang.org/x/sys v0.40.0
 )
