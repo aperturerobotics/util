@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
+	"github.com/aperturerobotics/fsnotify"
 	"github.com/pkg/errors"
 )
 
