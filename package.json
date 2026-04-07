@@ -20,7 +20,7 @@
   },
   "type": "module",
   "scripts": {
-    "build": "tsc --project tsconfig.json --noEmit false --outDir ./dist/",
+    "build": "tsgo --project tsconfig.json --noEmit false --outDir ./dist/",
     "check": "bun run typecheck",
     "deps": "depcheck --ignore-patterns=.eslintrc.cjs,package.json --ignores depcheck,prettier,typescript,starpc,@go/github.com,rimraf,@aptre/common",
     "typecheck": "tsc --noEmit",
@@ -54,17 +54,18 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.32.0",
+    "@aptre/common": "^0.32.2",
     "depcheck": "^1.4.7",
-    "happy-dom": "^20.7.0",
+    "happy-dom": "^20.8.9",
     "prettier": "^3.8.1",
     "rimraf": "^6.1.3",
     "typescript": "^6.0.0",
-    "vitest": "^4.0.18"
+    "@typescript/native-preview": "^7.0.0-dev.20260210.1",
+    "vitest": "^4.1.2"
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^1.0.1",
-    "starpc": "^0.49.0"
+    "starpc": "^0.49.3"
   },
   "resolutions": {
     "@aptre/protobuf-es-lite": "1.0.2"
