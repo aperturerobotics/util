@@ -1,7 +1,7 @@
 {
   "version": 2,
   "protocFlagsHash": "026b4f5a8ef7ebaa9358499f9c691e8e4e81e14056630b2e96e7291370c13109",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.2,starpc=v0.47.1,protobuf-es-lite=^1.0.1",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.2,starpc=v0.49.2,protobuf-es-lite=^1.0.1",
   "packages": {
     "github.com/aperturerobotics/util/backoff": {
       "hash": "cd4e45905244ee26382b115ed6c5cb835e15b65312a7a744913745c35c81aeb6",
