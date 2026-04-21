@@ -26,6 +26,8 @@ type Options struct {
 	// ShouldRetry returns true when the error should enter backoff instead of
 	// becoming the stable cached error.
 	ShouldRetry func(error) bool
+	// RetryDelay adjusts the fallback retry delay chosen by RetryBackoff.
+	RetryDelay func(error, time.Duration) time.Duration
 }
 
 // RefCount is a refcount driven object container.
@@ -596,6 +598,9 @@ func (r *RefCount[T]) resolve(
 		bo := r.getRetryBackoffLocked()
 		delay := bo.NextBackOff()
 		if delay != cbackoff.Stop {
+			if r.opts != nil && r.opts.RetryDelay != nil {
+				delay = r.opts.RetryDelay(err, delay)
+			}
 			var empty T
 			r.callRefCbsLocked(true, empty, err)
 			if r.targetErr != nil {
