@@ -4,7 +4,10 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/aperturerobotics/util/backoff"
+	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/promise"
@@ -15,6 +18,15 @@ import (
 // Accepts a released callback which can be called when the returned value is invalid.
 // Returns a release function which will be called when the returned value is no longer needed.
 type RefCountResolver[T comparable] func(ctx context.Context, released func()) (T, func(), error)
+
+// Options configures optional RefCount behavior.
+type Options struct {
+	// RetryBackoff configures cooldowns between retryable failures.
+	RetryBackoff *backoff.Backoff
+	// ShouldRetry returns true when the error should enter backoff instead of
+	// becoming the stable cached error.
+	ShouldRetry func(error) bool
+}
 
 // RefCount is a refcount driven object container.
 // Wraps a ccontainer with a ref count mechanism.
@@ -33,6 +45,8 @@ type RefCount[T comparable] struct {
 	// returns the value and a release function
 	// call the released callback if the value is no longer valid.
 	resolver RefCountResolver[T]
+	// opts configures optional retry behavior.
+	opts *Options
 	// mtx guards below fields
 	mtx sync.Mutex
 	// refs is the list of references.
@@ -44,11 +58,17 @@ type RefCount[T comparable] struct {
 	// invalidatePending indicates the current unresolved value should be
 	// discarded and a single follow-up resolve should run after it exits.
 	invalidatePending bool
+	// backoffPending indicates the active resolver is sleeping before retry.
+	backoffPending bool
 	// nonce is incremented when starting/stopping the resolver
 	nonce uint32
 	// waitCh is a channel to wait before starting next resolve
 	// may be nil
 	waitCh chan struct{}
+	// retryBo is the constructed retry backoff.
+	retryBo cbackoff.BackOff
+	// retryAt is the next time a retryable attempt may start.
+	retryAt time.Time
 	// resolved indicates the value is set
 	resolved bool
 	// value is the current value
@@ -95,12 +115,25 @@ func NewRefCount[T comparable](
 	targetErr *ccontainer.CContainer[*error],
 	resolver RefCountResolver[T],
 ) *RefCount[T] {
+	return NewRefCountWithOptions(ctx, keepUnref, target, targetErr, resolver, nil)
+}
+
+// NewRefCountWithOptions builds a new RefCount with optional retry behavior.
+func NewRefCountWithOptions[T comparable](
+	ctx context.Context,
+	keepUnref bool,
+	target *ccontainer.CContainer[T],
+	targetErr *ccontainer.CContainer[*error],
+	resolver RefCountResolver[T],
+	opts *Options,
+) *RefCount[T] {
 	return &RefCount[T]{
 		ctx:       ctx,
 		keepUnref: keepUnref,
 		target:    target,
 		targetErr: targetErr,
 		resolver:  resolver,
+		opts:      opts,
 		refs:      make(map[*Ref[T]]struct{}),
 	}
 }
@@ -137,7 +170,7 @@ func (r *RefCount[T]) SetContext(ctx context.Context) bool {
 	r.mtx.Lock()
 	if r.ctx != ctx {
 		r.ctx = ctx
-		r.startResolveLocked()
+		r.startResolveLocked(r.nextResolveDelayLocked())
 		updated = true
 	}
 	r.mtx.Unlock()
@@ -155,11 +188,41 @@ func (r *RefCount[T]) Invalidate() bool {
 	var changed bool
 	r.mtx.Lock()
 	if r.resolved {
-		r.startResolveLocked()
+		r.startResolveLocked(r.nextResolveDelayLocked())
 		changed = true
 	} else if r.resolveCtxCancel != nil && !r.invalidatePending {
 		r.invalidatePending = true
 		r.resolveCtxCancel()
+		changed = true
+	} else if r.resolveCtxCancel == nil && len(r.refs) != 0 && r.ctx != nil {
+		r.startResolveLocked(r.nextResolveDelayLocked())
+		changed = true
+	}
+	r.mtx.Unlock()
+	return changed
+}
+
+// ResetBackoff clears the retry cooldown and starts the next resolve
+// immediately if callers are waiting behind a retry backoff.
+func (r *RefCount[T]) ResetBackoff() bool {
+	var changed bool
+	r.mtx.Lock()
+	if r.opts == nil || r.opts.RetryBackoff == nil {
+		r.mtx.Unlock()
+		return false
+	}
+	if !r.retryAt.IsZero() {
+		r.retryAt = time.Time{}
+		changed = true
+	}
+	if r.retryBo != nil {
+		r.retryBo.Reset()
+	}
+	if r.backoffPending {
+		r.startResolveLocked(0)
+		changed = true
+	} else if !r.resolved && r.resolveCtxCancel == nil && len(r.refs) != 0 && r.ctx != nil {
+		r.startResolveLocked(0)
 		changed = true
 	}
 	r.mtx.Unlock()
@@ -174,7 +237,7 @@ func (r *RefCount[T]) AddRef(cb func(resolved bool, val T, err error)) *Ref[T] {
 	nref := &Ref[T]{rc: r, cb: cb}
 	r.refs[nref] = struct{}{}
 	if len(r.refs) == 1 && !r.resolved {
-		r.startResolveLocked()
+		r.startResolveLocked(r.nextResolveDelayLocked())
 	} else if r.resolved && nref.cb != nil {
 		nref.cb(true, r.value, r.valueErr)
 	}
@@ -366,24 +429,44 @@ func (r *RefCount[T]) removeRef(ref *Ref[T]) {
 	delete(r.refs, ref)
 	lenAfter := len(r.refs)
 	if lenAfter < lenBefore && lenAfter == 0 {
-		if !r.keepUnref || !r.resolved || r.valueErr != nil {
-			r.shutdown()
+		if !r.keepUnref {
+			r.shutdownLocked(true)
+		} else if r.resolved && r.valueErr == nil {
+			// Keep the successfully resolved value hot while unreferenced.
+		} else if !r.retryAt.IsZero() || r.backoffPending {
+			r.stopResolveLocked()
+		} else {
+			r.shutdownLocked(true)
 		}
 	}
 	r.mtx.Unlock()
 }
 
-// shutdown shuts down the resolver and clears state.
+// stopResolveLocked cancels the active resolve/backoff without clearing cached state.
 // expects mtx is locked by caller
-func (r *RefCount[T]) shutdown() {
-	r.nonce++
+func (r *RefCount[T]) stopResolveLocked() {
+	if r.resolveCtxCancel != nil {
+		r.nonce++
+		r.resolveCtxCancel()
+		r.resolveCtx, r.resolveCtxCancel = nil, nil
+	}
 	r.invalidatePending = false
-	r.clearResolvedState()
+	r.backoffPending = false
 }
 
-// clearResolvedState clears the resolved state.
+// shutdownLocked shuts down the resolver and clears state.
 // expects mtx is locked by caller
-func (r *RefCount[T]) clearResolvedState() {
+func (r *RefCount[T]) shutdownLocked(clearRetry bool) {
+	r.stopResolveLocked()
+	r.clearResolvedStateLocked()
+	if clearRetry {
+		r.resetRetryLocked()
+	}
+}
+
+// clearResolvedStateLocked clears the resolved state.
+// expects mtx is locked by caller
+func (r *RefCount[T]) clearResolvedStateLocked() {
 	if r.resolved {
 		r.resolved = false
 		if r.valueErr != nil {
@@ -401,10 +484,6 @@ func (r *RefCount[T]) clearResolvedState() {
 		}
 		r.callRefCbsLocked(false, empty, nil)
 	}
-	if r.resolveCtxCancel != nil {
-		r.resolveCtxCancel()
-		r.resolveCtx, r.resolveCtxCancel = nil, nil
-	}
 	if r.valueRel != nil {
 		r.valueRel()
 		r.valueRel = nil
@@ -413,8 +492,9 @@ func (r *RefCount[T]) clearResolvedState() {
 
 // startResolveLocked starts the resolve goroutine.
 // expects caller to lock mutex.
-func (r *RefCount[T]) startResolveLocked() {
-	r.shutdown()
+func (r *RefCount[T]) startResolveLocked(delay time.Duration) {
+	r.stopResolveLocked()
+	r.clearResolvedStateLocked()
 	if r.ctx == nil || len(r.refs) == 0 {
 		return
 	}
@@ -422,12 +502,19 @@ func (r *RefCount[T]) startResolveLocked() {
 	doneCh := make(chan struct{})
 	r.waitCh = doneCh
 	r.resolveCtx, r.resolveCtxCancel = context.WithCancel(r.ctx)
+	r.backoffPending = delay > 0
 	nonce := r.nonce
-	go r.resolve(r.resolveCtx, waitCh, doneCh, nonce)
+	go r.resolve(r.resolveCtx, waitCh, doneCh, nonce, delay)
 }
 
 // resolve is the goroutine to resolve the value to the container.
-func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{}, nonce uint32) {
+func (r *RefCount[T]) resolve(
+	ctx context.Context,
+	waitCh,
+	doneCh chan struct{},
+	nonce uint32,
+	delay time.Duration,
+) {
 	defer close(doneCh)
 
 	if waitCh != nil {
@@ -436,6 +523,34 @@ func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{},
 			return
 		case <-waitCh:
 		}
+	}
+	if delay > 0 {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			r.mtx.Lock()
+			defer r.mtx.Unlock()
+			if r.nonce != nonce {
+				return
+			}
+			r.backoffPending = false
+			if r.invalidatePending {
+				r.invalidatePending = false
+				r.startResolveLocked(r.nextResolveDelayLocked())
+				return
+			}
+			r.resolveCtx, r.resolveCtxCancel = nil, nil
+			return
+		case <-timer.C:
+		}
+		r.mtx.Lock()
+		if r.nonce != nonce {
+			r.mtx.Unlock()
+			return
+		}
+		r.backoffPending = false
+		r.mtx.Unlock()
 	}
 
 	released := func() {
@@ -446,7 +561,7 @@ func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{},
 			defer r.mtx.Unlock()
 			if r.nonce == nonce {
 				// calls shutdown internally
-				r.startResolveLocked()
+				r.startResolveLocked(r.nextResolveDelayLocked())
 			}
 		}
 
@@ -474,14 +589,43 @@ func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{},
 		if valRel != nil {
 			defer valRel()
 		}
-		r.startResolveLocked()
+		r.startResolveLocked(r.nextResolveDelayLocked())
 		return
 	}
+	if err != nil && r.shouldRetryLocked(err) {
+		bo := r.getRetryBackoffLocked()
+		delay := bo.NextBackOff()
+		if delay != cbackoff.Stop {
+			var empty T
+			r.callRefCbsLocked(true, empty, err)
+			if r.targetErr != nil {
+				r.targetErr.SetValue(nil)
+			}
+			if valRel != nil {
+				defer valRel()
+			}
+			if delay < 0 {
+				delay = 0
+			}
+			if delay > 0 {
+				r.retryAt = time.Now().Add(delay)
+			} else {
+				r.retryAt = time.Time{}
+			}
+			r.resolveCtx, r.resolveCtxCancel = nil, nil
+			if len(r.refs) != 0 && r.ctx != nil {
+				r.startResolveLocked(delay)
+			}
+			return
+		}
+	}
+	r.resetRetryLocked()
 
 	// store the value and/or error
 	r.resolved = true
 	r.value, r.valueErr = val, err
 	r.valueRel = valRel
+	r.resolveCtx, r.resolveCtxCancel = nil, nil
 	if err != nil {
 		if r.targetErr != nil {
 			r.targetErr.SetValue(&err)
@@ -504,6 +648,49 @@ func (r *RefCount[T]) callRefCbsLocked(resolved bool, val T, err error) {
 			ref.cb(resolved, val, err)
 		}
 	}
+}
+
+// nextResolveDelayLocked returns the current retry cooldown delay.
+// expects mtx is locked by caller
+func (r *RefCount[T]) nextResolveDelayLocked() time.Duration {
+	if r.retryAt.IsZero() {
+		return 0
+	}
+	delay := time.Until(r.retryAt)
+	if delay < 0 {
+		return 0
+	}
+	return delay
+}
+
+// getRetryBackoffLocked returns the constructed retry backoff.
+// expects mtx is locked by caller
+func (r *RefCount[T]) getRetryBackoffLocked() cbackoff.BackOff {
+	if r.retryBo == nil && r.opts != nil && r.opts.RetryBackoff != nil {
+		r.retryBo = r.opts.RetryBackoff.Construct()
+	}
+	return r.retryBo
+}
+
+// resetRetryLocked clears retry cooldown state.
+// expects mtx is locked by caller
+func (r *RefCount[T]) resetRetryLocked() {
+	r.retryAt = time.Time{}
+	if r.retryBo != nil {
+		r.retryBo.Reset()
+	}
+}
+
+// shouldRetryLocked returns whether err should enter retry backoff.
+// expects mtx is locked by caller
+func (r *RefCount[T]) shouldRetryLocked(err error) bool {
+	if err == nil || r.opts == nil || r.opts.RetryBackoff == nil {
+		return false
+	}
+	if r.opts.ShouldRetry == nil {
+		return true
+	}
+	return r.opts.ShouldRetry(err)
 }
 
 // _ is a type assertion

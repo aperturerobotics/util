@@ -2,10 +2,12 @@ package refcount
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
 )
 
@@ -328,6 +330,165 @@ func TestRefCount_InvalidateCoalescesInflight(t *testing.T) {
 		t.Fatalf("expected resolved value 2 after coalesced retry, got %v", val)
 	}
 	rel()
+}
+
+// TestRefCount_RetryBackoffWaitsNewCallers tests retryable errors fail the
+// current waiters but make later callers wait behind the cooldown.
+func TestRefCount_RetryBackoffWaitsNewCallers(t *testing.T) {
+	ctx := context.Background()
+	retryErr := errors.New("retry me")
+	startedCh := make(chan int, 4)
+	releaseFirstAttempt := make(chan struct{})
+	var calls atomic.Int32
+	rc := NewRefCountWithOptions(
+		nil,
+		true,
+		nil,
+		nil,
+		func(ctx context.Context, released func()) (*int, func(), error) {
+			n := int(calls.Add(1))
+			startedCh <- n
+			if n == 1 {
+				<-releaseFirstAttempt
+				return nil, nil, retryErr
+			}
+			val := 7
+			return &val, nil, nil
+		},
+		&Options{
+			RetryBackoff: &backoff.Backoff{
+				BackoffKind: backoff.BackoffKind_BackoffKind_CONSTANT,
+				Constant:    &backoff.Constant{Interval: 80},
+			},
+			ShouldRetry: func(err error) bool { return errors.Is(err, retryErr) },
+		},
+	)
+	rc.SetContext(ctx)
+
+	errCh := make(chan error, 2)
+	for range 2 {
+		go func() {
+			_, rel, err := rc.Resolve(ctx)
+			if rel != nil {
+				rel()
+			}
+			errCh <- err
+		}()
+	}
+	select {
+	case n := <-startedCh:
+		if n != 1 {
+			t.Fatalf("expected first resolve start #1, got #%d", n)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for first resolve start")
+	}
+
+	close(releaseFirstAttempt)
+
+	for range 2 {
+		select {
+		case err := <-errCh:
+			if !errors.Is(err, retryErr) {
+				t.Fatalf("expected retryable error, got %v", err)
+			}
+		case <-time.After(time.Second):
+			t.Fatal("timed out waiting for first-attempt error")
+		}
+	}
+
+	start := time.Now()
+	val, rel, err := rc.Resolve(ctx)
+	if rel != nil {
+		defer rel()
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val == nil || *val != 7 {
+		t.Fatalf("expected retried value 7, got %v", val)
+	}
+	if elapsed := time.Since(start); elapsed < 60*time.Millisecond {
+		t.Fatalf("expected retry cooldown to be honored, waited only %v", elapsed)
+	}
+
+	select {
+	case n := <-startedCh:
+		if n != 2 {
+			t.Fatalf("expected second resolve after cooldown, got #%d", n)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for retried resolve")
+	}
+}
+
+// TestRefCount_ResetBackoff tests ResetBackoff bypasses a scheduled retry cooldown.
+func TestRefCount_ResetBackoff(t *testing.T) {
+	ctx := context.Background()
+	retryErr := errors.New("retry me")
+	var calls atomic.Int32
+	rc := NewRefCountWithOptions(
+		nil,
+		true,
+		nil,
+		nil,
+		func(ctx context.Context, released func()) (*int, func(), error) {
+			n := int(calls.Add(1))
+			if n == 1 {
+				return nil, nil, retryErr
+			}
+			val := n
+			return &val, nil, nil
+		},
+		&Options{
+			RetryBackoff: &backoff.Backoff{
+				BackoffKind: backoff.BackoffKind_BackoffKind_CONSTANT,
+				Constant:    &backoff.Constant{Interval: 1000},
+			},
+			ShouldRetry: func(err error) bool { return errors.Is(err, retryErr) },
+		},
+	)
+	rc.SetContext(ctx)
+
+	_, rel, err := rc.Resolve(ctx)
+	if rel != nil {
+		rel()
+	}
+	if !errors.Is(err, retryErr) {
+		t.Fatalf("expected retryable error on first attempt, got %v", err)
+	}
+
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		val, rel, err := rc.Resolve(ctx)
+		if rel != nil {
+			defer rel()
+		}
+		if err != nil {
+			t.Errorf("unexpected error after reset: %v", err)
+			return
+		}
+		if val == nil || *val != 2 {
+			t.Errorf("expected reset-backoff value 2, got %v", val)
+		}
+	}()
+
+	select {
+	case <-doneCh:
+		t.Fatal("resolve returned before cooldown was reset")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	if !rc.ResetBackoff() {
+		t.Fatal("expected ResetBackoff to report a change")
+	}
+
+	select {
+	case <-doneCh:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for resolve after ResetBackoff")
+	}
 }
 
 // TestRefCount_ResolveAsRefCount tests using a RefCount.Resolve as the resolver for another RefCount.
