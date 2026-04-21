@@ -235,6 +235,101 @@ func TestRefCount_KeepUnref(t *testing.T) {
 	ref.Release()
 }
 
+// TestRefCount_Invalidate tests explicit invalidation and re-resolution.
+func TestRefCount_Invalidate(t *testing.T) {
+	ctx := context.Background()
+	nextVal := 1
+	rc := NewRefCount(nil, true, nil, nil, func(ctx context.Context, released func()) (*int, func(), error) {
+		val := nextVal
+		nextVal++
+		return &val, nil, nil
+	})
+	rc.SetContext(ctx)
+
+	first, firstRel, err := rc.Resolve(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first == nil || *first != 1 {
+		t.Fatalf("expected initial value 1, got %v", first)
+	}
+
+	if !rc.Invalidate() {
+		t.Fatal("expected invalidate to report a change")
+	}
+	second, secondRel, err := rc.Resolve(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second == nil || *second != 2 {
+		t.Fatalf("expected re-resolved value 2, got %v", second)
+	}
+	firstRel()
+	secondRel()
+}
+
+// TestRefCount_InvalidateCoalescesInflight tests repeated invalidates collapse
+// into a single retry while a resolve is in flight.
+func TestRefCount_InvalidateCoalescesInflight(t *testing.T) {
+	ctx := context.Background()
+	startedCh := make(chan int, 4)
+	var calls atomic.Int32
+	rc := NewRefCount(nil, true, nil, nil, func(ctx context.Context, released func()) (*int, func(), error) {
+		n := int(calls.Add(1))
+		startedCh <- n
+		if n == 1 {
+			<-ctx.Done()
+			return nil, nil, ctx.Err()
+		}
+		val := n
+		return &val, nil, nil
+	})
+	rc.SetContext(ctx)
+
+	ref := rc.AddRef(nil)
+	defer ref.Release()
+
+	select {
+	case n := <-startedCh:
+		if n != 1 {
+			t.Fatalf("expected first resolve to start first, got %d", n)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for first resolve")
+	}
+
+	if !rc.Invalidate() {
+		t.Fatal("expected first invalidate to queue a retry")
+	}
+	if rc.Invalidate() {
+		t.Fatal("expected second invalidate to coalesce with the pending retry")
+	}
+
+	select {
+	case n := <-startedCh:
+		if n != 2 {
+			t.Fatalf("expected second resolve after coalesced invalidation, got %d", n)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for retried resolve")
+	}
+
+	select {
+	case n := <-startedCh:
+		t.Fatalf("unexpected extra resolve started: %d", n)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	val, rel, err := rc.Resolve(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val == nil || *val != 2 {
+		t.Fatalf("expected resolved value 2 after coalesced retry, got %v", val)
+	}
+	rel()
+}
+
 // TestRefCount_ResolveAsRefCount tests using a RefCount.Resolve as the resolver for another RefCount.
 func TestRefCount_ResolveAsRefCount(t *testing.T) {
 	ctx := context.Background()

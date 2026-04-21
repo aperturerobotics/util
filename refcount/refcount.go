@@ -41,6 +41,9 @@ type RefCount[T comparable] struct {
 	resolveCtx context.Context
 	// resolveCtxCancel cancels resolveCtx
 	resolveCtxCancel context.CancelFunc
+	// invalidatePending indicates the current unresolved value should be
+	// discarded and a single follow-up resolve should run after it exits.
+	invalidatePending bool
 	// nonce is incremented when starting/stopping the resolver
 	nonce uint32
 	// waitCh is a channel to wait before starting next resolve
@@ -144,6 +147,23 @@ func (r *RefCount[T]) SetContext(ctx context.Context) bool {
 // ClearContext clears the context and shuts down all routines.
 func (r *RefCount[T]) ClearContext() {
 	_ = r.SetContext(nil)
+}
+
+// Invalidate clears the current resolved value and restarts resolution if
+// references are still held.
+func (r *RefCount[T]) Invalidate() bool {
+	var changed bool
+	r.mtx.Lock()
+	if r.resolved {
+		r.startResolveLocked()
+		changed = true
+	} else if r.resolveCtxCancel != nil && !r.invalidatePending {
+		r.invalidatePending = true
+		r.resolveCtxCancel()
+		changed = true
+	}
+	r.mtx.Unlock()
+	return changed
 }
 
 // AddRef adds a reference to the RefCount container.
@@ -357,6 +377,7 @@ func (r *RefCount[T]) removeRef(ref *Ref[T]) {
 // expects mtx is locked by caller
 func (r *RefCount[T]) shutdown() {
 	r.nonce++
+	r.invalidatePending = false
 	r.clearResolvedState()
 }
 
@@ -446,6 +467,14 @@ func (r *RefCount[T]) resolve(ctx context.Context, waitCh, doneCh chan struct{},
 		if valRel != nil {
 			defer valRel()
 		}
+		return
+	}
+	if r.invalidatePending {
+		r.invalidatePending = false
+		if valRel != nil {
+			defer valRel()
+		}
+		r.startResolveLocked()
 		return
 	}
 
