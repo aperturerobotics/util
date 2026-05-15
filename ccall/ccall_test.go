@@ -35,7 +35,6 @@ func TestCallConcurrently_Err(t *testing.T) {
 
 	var fns []CallConcurrentlyFunc
 	for i := range 10 {
-		i := i
 		fns = append(fns, func(ctx context.Context) error {
 			if i == 5 || i == 8 {
 				return errRet
