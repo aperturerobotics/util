@@ -21,7 +21,7 @@ type Broadcast struct {
 func (c *Broadcast) HoldLock(cb func(broadcast func(), getWaitCh func() <-chan struct{})) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	cb(c.broadcastLocked, c.getWaitChLocked)
+	cb(c.broadcastLockedFunc(), c.getWaitChLockedFunc())
 }
 
 // TryHoldLock attempts to lock the mutex and call the callback.
@@ -31,7 +31,7 @@ func (c *Broadcast) TryHoldLock(cb func(broadcast func(), getWaitCh func() <-cha
 		return false
 	}
 	defer c.mtx.Unlock()
-	cb(c.broadcastLocked, c.getWaitChLocked)
+	cb(c.broadcastLockedFunc(), c.getWaitChLockedFunc())
 	return true
 }
 
@@ -44,7 +44,7 @@ func (c *Broadcast) HoldLockMaybeAsync(cb func(broadcast func(), getWaitCh func(
 		}
 		// use defer to catch panic cases
 		defer c.mtx.Unlock()
-		cb(c.broadcastLocked, c.getWaitChLocked)
+		cb(c.broadcastLockedFunc(), c.getWaitChLockedFunc())
 	}
 
 	// fast path: lock immediately
@@ -93,18 +93,24 @@ func (c *Broadcast) Wait(ctx context.Context, cb func(broadcast func(), getWaitC
 	}
 }
 
-// broadcastLocked is the implementation of Broadcast while mtx is locked.
-func (c *Broadcast) broadcastLocked() {
-	if c.ch != nil {
-		close(c.ch)
+// broadcastLockedFunc returns the implementation of Broadcast while mtx is locked.
+func (c *Broadcast) broadcastLockedFunc() func() {
+	return func() {
+		if c.ch == nil {
+			return
+		}
+		ch := c.ch
 		c.ch = nil
+		close(ch)
 	}
 }
 
-// getWaitChLocked is the implementation of GetWaitCh while mtx is locked.
-func (c *Broadcast) getWaitChLocked() <-chan struct{} {
-	if c.ch == nil {
-		c.ch = make(chan struct{})
+// getWaitChLockedFunc returns the implementation of GetWaitCh while mtx is locked.
+func (c *Broadcast) getWaitChLockedFunc() func() <-chan struct{} {
+	return func() <-chan struct{} {
+		if c.ch == nil {
+			c.ch = make(chan struct{})
+		}
+		return c.ch
 	}
-	return c.ch
 }
