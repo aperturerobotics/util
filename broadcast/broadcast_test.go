@@ -3,6 +3,7 @@ package broadcast
 import (
 	"context"
 	"fmt"
+	"testing"
 	"time"
 )
 
@@ -73,4 +74,27 @@ func ExampleBroadcast_Wait() {
 
 	fmt.Printf("waited for value to increment: %v\n", gotValue)
 	// Output: waited for value to increment: 9
+}
+
+func TestBroadcastCallbackIdempotent(t *testing.T) {
+	var b Broadcast
+	b.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		waitCh := getWaitCh()
+
+		broadcast()
+		broadcast()
+
+		select {
+		case <-waitCh:
+		default:
+			t.Fatal("expected wait channel to close")
+		}
+	})
+}
+
+func TestBroadcastWaitChannelCloseIdempotent(t *testing.T) {
+	ch := newBroadcastWaitCh()
+
+	ch.close()
+	ch.close()
 }

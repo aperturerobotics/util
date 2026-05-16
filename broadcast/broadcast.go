@@ -11,7 +11,22 @@ import (
 // The zero-value of this struct is valid.
 type Broadcast struct {
 	mtx sync.Mutex
-	ch  chan struct{}
+	ch  *broadcastWaitCh
+}
+
+type broadcastWaitCh struct {
+	once sync.Once
+	ch   chan struct{}
+}
+
+func newBroadcastWaitCh() *broadcastWaitCh {
+	return &broadcastWaitCh{ch: make(chan struct{})}
+}
+
+func (c *broadcastWaitCh) close() {
+	c.once.Do(func() {
+		close(c.ch)
+	})
 }
 
 // HoldLock locks the mutex and calls the callback.
@@ -101,7 +116,7 @@ func (c *Broadcast) broadcastLockedFunc() func() {
 		}
 		ch := c.ch
 		c.ch = nil
-		close(ch)
+		ch.close()
 	}
 }
 
@@ -109,8 +124,8 @@ func (c *Broadcast) broadcastLockedFunc() func() {
 func (c *Broadcast) getWaitChLockedFunc() func() <-chan struct{} {
 	return func() <-chan struct{} {
 		if c.ch == nil {
-			c.ch = make(chan struct{})
+			c.ch = newBroadcastWaitCh()
 		}
-		return c.ch
+		return c.ch.ch
 	}
 }
