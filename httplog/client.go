@@ -93,6 +93,7 @@ func DoRequestWithClient(le *logrus.Entry, client HttpClient, req *http.Request,
 	if client != nil {
 		resp, err = client.Do(req)
 	} else {
+		//nolint:gosec // Callers own the request URL; this helper preserves nil-client default behavior.
 		resp, err = http.DefaultClient.Do(req)
 	}
 	duration := time.Since(startTime)

@@ -2,6 +2,7 @@ package ulid
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"time"
 )
@@ -22,13 +23,10 @@ var ErrInvalidULID = errors.New("invalid ulid")
 // NewULID constructs a new randomized ulid in lowercase.
 func NewULID() string {
 	var id ULID
+	var ts [8]byte
 	now := uint64(time.Now().UnixMilli())
-	id[0] = byte(now >> 40)
-	id[1] = byte(now >> 32)
-	id[2] = byte(now >> 24)
-	id[3] = byte(now >> 16)
-	id[4] = byte(now >> 8)
-	id[5] = byte(now)
+	binary.BigEndian.PutUint64(ts[:], now)
+	copy(id[:6], ts[2:])
 	if _, err := rand.Read(id[6:]); err != nil {
 		panic(err)
 	}

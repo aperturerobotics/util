@@ -28,7 +28,11 @@ func (f *Flock) TryLock() (bool, error) {
 		f.fh = fh
 	}
 
-	err := unix.Flock(int(f.fh.Fd()), unix.LOCK_EX|unix.LOCK_NB)
+	fd, err := fileDescriptor(f.fh)
+	if err != nil {
+		return false, err
+	}
+	err = unix.Flock(fd, unix.LOCK_EX|unix.LOCK_NB)
 	if err != nil {
 		if errors.Is(err, unix.EWOULDBLOCK) {
 			return false, nil
@@ -50,7 +54,11 @@ func (f *Flock) Unlock() error {
 		return nil
 	}
 
-	err := unix.Flock(int(f.fh.Fd()), unix.LOCK_UN)
+	fd, err := fileDescriptor(f.fh)
+	if err != nil {
+		return err
+	}
+	err = unix.Flock(fd, unix.LOCK_UN)
 	if err != nil {
 		return err
 	}
@@ -60,4 +68,12 @@ func (f *Flock) Unlock() error {
 	f.fh = nil
 
 	return nil
+}
+
+func fileDescriptor(fh *os.File) (int, error) {
+	fd := fh.Fd()
+	if fd > uintptr(^uint(0)>>1) {
+		return 0, errors.New("file descriptor overflows int")
+	}
+	return int(fd), nil
 }

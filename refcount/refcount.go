@@ -503,6 +503,7 @@ func (r *RefCount[T]) startResolveLocked(delay time.Duration) {
 	waitCh := r.waitCh
 	doneCh := make(chan struct{})
 	r.waitCh = doneCh
+	//nolint:gosec // resolveCtxCancel is stored on RefCount and canceled by stopResolveLocked or resolver completion.
 	r.resolveCtx, r.resolveCtxCancel = context.WithCancel(r.ctx)
 	r.backoffPending = delay > 0
 	nonce := r.nonce

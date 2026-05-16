@@ -365,16 +365,8 @@ func TestRefCount_RetryBackoffWaitsNewCallers(t *testing.T) {
 	)
 	rc.SetContext(ctx)
 
-	errCh := make(chan error, 2)
-	for range 2 {
-		go func() {
-			_, rel, err := rc.Resolve(ctx)
-			if rel != nil {
-				rel()
-			}
-			errCh <- err
-		}()
-	}
+	firstProm, firstRef := rc.AddRefPromise()
+	secondProm, secondRef := rc.AddRefPromise()
 	select {
 	case n := <-startedCh:
 		if n != 1 {
@@ -386,16 +378,14 @@ func TestRefCount_RetryBackoffWaitsNewCallers(t *testing.T) {
 
 	close(releaseFirstAttempt)
 
-	for range 2 {
-		select {
-		case err := <-errCh:
-			if !errors.Is(err, retryErr) {
-				t.Fatalf("expected retryable error, got %v", err)
-			}
-		case <-time.After(time.Second):
-			t.Fatal("timed out waiting for first-attempt error")
-		}
+	if _, err := firstProm.Await(ctx); !errors.Is(err, retryErr) {
+		t.Fatalf("expected first waiter retryable error, got %v", err)
 	}
+	firstRef.Release()
+	if _, err := secondProm.Await(ctx); !errors.Is(err, retryErr) {
+		t.Fatalf("expected second waiter retryable error, got %v", err)
+	}
+	secondRef.Release()
 
 	start := time.Now()
 	val, rel, err := rc.Resolve(ctx)

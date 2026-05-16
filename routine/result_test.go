@@ -2,6 +2,7 @@ package routine
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"github.com/aperturerobotics/util/promise"
@@ -13,7 +14,7 @@ func TestStateResultRoutine(t *testing.T) {
 
 	// Test successful case
 	sr, ctr := NewStateResultRoutine(func(ctx context.Context, st int) (string, error) {
-		return "value:" + string(rune(st+'0')), nil
+		return "value:" + strconv.Itoa(st), nil
 	})
 
 	// Set initial state and check result
@@ -33,7 +34,7 @@ func TestStateResultRoutine(t *testing.T) {
 	// Test with custom promise container
 	customCtr := promise.NewPromiseContainer[string]()
 	sr3 := NewStateResultRoutineWithPromiseContainer(func(ctx context.Context, st int) (string, error) {
-		return "custom:" + string(rune(st+'0')), nil
+		return "custom:" + strconv.Itoa(st), nil
 	}, customCtr)
 
 	if err := sr3(ctx, 2); err != nil {

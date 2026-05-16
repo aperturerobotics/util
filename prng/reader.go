@@ -1,6 +1,7 @@
 package prng
 
 import (
+	"encoding/binary"
 	"io"
 	"math/rand/v2"
 )
@@ -34,9 +35,7 @@ func (r *randReader) Read(p []byte) (n int, err error) {
 		if r.off == 0 {
 			// Generate a new random uint64 value and store it in the buffer.
 			val := r.src.Uint64()
-			for i := range 8 {
-				r.buf[i] = byte(val >> (i * 8))
-			}
+			binary.LittleEndian.PutUint64(r.buf[:], val)
 		}
 
 		// Determine how many bytes to copy from the buffer.

@@ -1,9 +1,12 @@
 import eslint from '@eslint/js'
 import tseslint from '@typescript-eslint/eslint-plugin'
 import prettier from 'eslint-config-prettier'
-import reactHooks from 'eslint-plugin-react-hooks'
-import unusedImports from 'eslint-plugin-unused-imports'
-import globals from 'globals'
+
+const runtimeGlobals = {
+  console: 'readonly',
+  process: 'readonly',
+  setTimeout: 'readonly',
+}
 
 export default [
   {
@@ -13,6 +16,7 @@ export default [
       'coverage/**',
       'bundle/**',
       'runtime/**',
+      '.tools/**',
       'vendor/**',
       '**/wasm_exec.js',
       '**/*.pb.ts',
@@ -20,16 +24,9 @@ export default [
   },
   eslint.configs.recommended,
   ...tseslint.configs['flat/recommended'],
-  reactHooks.configs.flat.recommended,
   {
     languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.browser,
-      },
-    },
-    plugins: {
-      'unused-imports': unusedImports,
+      globals: runtimeGlobals,
     },
     rules: {
       '@typescript-eslint/explicit-module-boundary-types': 'off',
