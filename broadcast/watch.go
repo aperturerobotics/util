@@ -36,10 +36,10 @@ func WatchBroadcastWithEqual[T comparable](
 ) error {
 	var ch <-chan struct{}
 	var val T
-	bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		ch = getWaitCh()
-		val = snapshot()
-	})
+	locked := bcast.Lock()
+	ch = locked.WaitCh()
+	val = snapshot()
+	locked.Unlock()
 	if err := send(val); err != nil {
 		return err
 	}
@@ -50,10 +50,10 @@ func WatchBroadcastWithEqual[T comparable](
 			return ctx.Err()
 		case <-ch:
 		}
-		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			ch = getWaitCh()
-			val = snapshot()
-		})
+		locked := bcast.Lock()
+		ch = locked.WaitCh()
+		val = snapshot()
+		locked.Unlock()
 		if val == prev {
 			continue
 		}

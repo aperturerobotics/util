@@ -16,20 +16,22 @@ func ExampleBroadcast() {
 		// 0 to 9 inclusive
 		for i := range 10 {
 			<-time.After(time.Millisecond * 20)
-			b.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-				currValue = i
-				broadcast()
-			})
+			locked := b.Lock()
+			currValue = i
+			locked.Broadcast()
+			locked.Unlock()
 		}
 	}()
 
 	var waitCh <-chan struct{}
 	var gotValue int
 	for {
-		b.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			gotValue = currValue
-			waitCh = getWaitCh()
-		})
+		locked := b.Lock()
+		gotValue = currValue
+		if gotValue != 9 {
+			waitCh = locked.WaitCh()
+		}
+		locked.Unlock()
 
 		// last value
 		if gotValue == 9 {
@@ -97,4 +99,68 @@ func TestBroadcastWaitChannelCloseIdempotent(t *testing.T) {
 
 	ch.close()
 	ch.close()
+}
+
+func TestBroadcastLockedAPI(t *testing.T) {
+	var b Broadcast
+
+	locked := b.Lock()
+	waitCh := locked.WaitCh()
+	locked.Broadcast()
+	locked.Unlock()
+
+	select {
+	case <-waitCh:
+	default:
+		t.Fatal("expected wait channel to close")
+	}
+
+	locked, ok := b.TryLock()
+	if !ok {
+		t.Fatal("expected TryLock after Unlock to succeed")
+	}
+	locked.Unlock()
+}
+
+func TestBroadcastTryLockBusy(t *testing.T) {
+	var b Broadcast
+
+	locked := b.Lock()
+	if _, ok := b.TryLock(); ok {
+		t.Fatal("expected TryLock to fail while locked")
+	}
+	locked.Unlock()
+}
+
+func TestBroadcastLockDoesNotAllocate(t *testing.T) {
+	var bc Broadcast
+
+	allocs := testing.AllocsPerRun(100, func() {
+		locked := bc.Lock()
+		locked.Broadcast()
+		locked.Unlock()
+	})
+	if allocs != 0 {
+		t.Fatalf("expected Lock/Broadcast/Unlock to avoid allocations, got %v", allocs)
+	}
+}
+
+func BenchmarkBroadcastHoldLock(b *testing.B) {
+	var bc Broadcast
+	b.ReportAllocs()
+	for b.Loop() {
+		bc.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			broadcast()
+		})
+	}
+}
+
+func BenchmarkBroadcastLock(b *testing.B) {
+	var bc Broadcast
+	b.ReportAllocs()
+	for b.Loop() {
+		locked := bc.Lock()
+		locked.Broadcast()
+		locked.Unlock()
+	}
 }
