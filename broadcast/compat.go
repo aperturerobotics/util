@@ -14,7 +14,7 @@ import (
 func (c *Broadcast) HoldLock(cb func(broadcast func(), getWaitCh func() <-chan struct{})) {
 	locked := c.Lock()
 	defer locked.Unlock()
-	cb(locked.Broadcast, locked.WaitCh)
+	cb(c.broadcastLockedFunc(), c.waitChLockedFunc())
 }
 
 // TryHoldLock attempts to lock the mutex and call the callback.
@@ -27,7 +27,7 @@ func (c *Broadcast) TryHoldLock(cb func(broadcast func(), getWaitCh func() <-cha
 		return false
 	}
 	defer locked.Unlock()
-	cb(locked.Broadcast, locked.WaitCh)
+	cb(c.broadcastLockedFunc(), c.waitChLockedFunc())
 	return true
 }
 
@@ -42,8 +42,7 @@ func (c *Broadcast) HoldLockMaybeAsync(cb func(broadcast func(), getWaitCh func(
 			c.mtx.Lock()
 		}
 		defer c.mtx.Unlock()
-		locked := Locked{b: c}
-		cb(locked.Broadcast, locked.WaitCh)
+		cb(c.broadcastLockedFunc(), c.waitChLockedFunc())
 	}
 
 	if c.mtx.TryLock() {
@@ -72,9 +71,11 @@ func (c *Broadcast) Wait(ctx context.Context, cb func(broadcast func(), getWaitC
 		var done bool
 		var err error
 		locked := c.Lock()
-		done, err = cb(locked.Broadcast, locked.WaitCh)
+		broadcast := c.broadcastLockedFunc()
+		getWaitCh := c.waitChLockedFunc()
+		done, err = cb(broadcast, getWaitCh)
 		if !done && err == nil {
-			waitCh = locked.WaitCh()
+			waitCh = getWaitCh()
 		}
 		locked.Unlock()
 
@@ -87,5 +88,31 @@ func (c *Broadcast) Wait(ctx context.Context, cb func(broadcast func(), getWaitC
 			return context.Canceled
 		case <-waitCh:
 		}
+	}
+}
+
+// broadcastLockedFunc returns a callback-shaped broadcast operation for
+// HoldLock compatibility callers. Keep this as a plain closure rather than a
+// bound Locked method value: TinyGo browser wasm has trapped in channel close
+// paths reached through bound method callbacks.
+func (c *Broadcast) broadcastLockedFunc() func() {
+	return func() {
+		if c.ch == nil {
+			return
+		}
+		ch := c.ch
+		c.ch = nil
+		ch.close()
+	}
+}
+
+// waitChLockedFunc returns a callback-shaped wait subscription operation for
+// HoldLock compatibility callers.
+func (c *Broadcast) waitChLockedFunc() func() <-chan struct{} {
+	return func() <-chan struct{} {
+		if c.ch == nil {
+			c.ch = newBroadcastWaitCh()
+		}
+		return c.ch.ch
 	}
 }
