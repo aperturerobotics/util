@@ -7,6 +7,8 @@ import (
 	"io"
 	"sync"
 	"syscall/js"
+
+	"github.com/aperturerobotics/util/js/internal/tinygojs"
 )
 
 // ReadableStream implements io.ReadCloser for the response body.
@@ -22,7 +24,7 @@ type ReadableStream struct {
 func NewReadableStream(stream js.Value) *ReadableStream {
 	return &ReadableStream{
 		stream: stream,
-		reader: stream.Call("getReader"),
+		reader: tinygojs.Call(stream, "getReader"),
 	}
 }
 
@@ -51,13 +53,17 @@ func (b *ReadableStream) Read(p []byte) (n int, err error) {
 	defer success.Release()
 
 	failure := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		b.readError = errors.New(args[0].Get("message").String())
+		if len(args) == 0 {
+			b.readError = errors.New("readable stream read failed")
+		} else {
+			b.readError = errors.New(tinygojs.RejectionMessage(args[0]))
+		}
 		resultChan <- struct{}{}
 		return nil
 	})
 	defer failure.Release()
 
-	b.reader.Call("read").Call("then", success).Call("catch", failure)
+	tinygojs.AwaitPromise(tinygojs.Call(b.reader, "read"), success, failure)
 	<-resultChan
 
 	if b.readError != nil {
@@ -105,7 +111,7 @@ func (b *ReadableStream) Close() error {
 
 	if !b.closed {
 		b.closed = true
-		b.reader.Call("cancel")
+		tinygojs.Call(b.reader, "cancel")
 	}
 
 	return nil

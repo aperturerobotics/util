@@ -13,6 +13,7 @@ import (
 	"syscall/js"
 
 	"github.com/aperturerobotics/util/iocloser"
+	"github.com/aperturerobotics/util/js/internal/tinygojs"
 	stream "github.com/aperturerobotics/util/js/readable-stream"
 )
 
@@ -249,11 +250,11 @@ func Fetch(url string, opts *Opts) (*Response, error) {
 	}
 	ch := make(chan *fetchResponse)
 	if opts != nil && opts.Signal != nil {
-		controller := js.Global().Get("AbortController").New()
+		controller := tinygojs.New(js.Global().Get("AbortController"))
 		signal := controller.Get("signal")
 		optsMap["signal"] = signal
 		abort := func() {
-			controller.Call("abort")
+			tinygojs.Call(controller, "abort")
 		}
 		context.AfterFunc(opts.Signal, abort)
 	}
@@ -261,10 +262,10 @@ func Fetch(url string, opts *Opts) (*Response, error) {
 	success := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		r := new(Response)
 		resp := args[0]
-		headersIt := resp.Get("headers").Call("entries")
+		headersIt := tinygojs.Call(resp.Get("headers"), "entries")
 		headers := Header{}
 		for {
-			n := headersIt.Call("next")
+			n := tinygojs.Call(headersIt, "next")
 			if n.Get("done").Bool() {
 				break
 			}
@@ -287,15 +288,18 @@ func Fetch(url string, opts *Opts) (*Response, error) {
 	defer success.Release()
 
 	failure := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		msg := args[0].Get("message").String()
+		msg := "fetch failed"
+		if len(args) != 0 {
+			msg = tinygojs.RejectionMessage(args[0])
+		}
 		ch <- &fetchResponse{e: errors.New(msg)}
 		return nil
 	})
 	defer failure.Release()
 
 	jsOptsMap := js.ValueOf(optsMap)
-	promise := js.Global().Call("fetch", url, jsOptsMap)
-	go promise.Call("then", success).Call("catch", failure)
+	promise := tinygojs.Call(js.Global(), "fetch", url, jsOptsMap)
+	go tinygojs.AwaitPromise(promise, success, failure)
 
 	r := <-ch
 	if r.e != nil {
@@ -391,7 +395,7 @@ func mapOpts(opts *Opts) (map[string]interface{}, error) {
 			return nil, err
 		}
 
-		uint8Array := js.Global().Get("Uint8Array").New(len(bts))
+		uint8Array := tinygojs.New(js.Global().Get("Uint8Array"), len(bts))
 		js.CopyBytesToJS(uint8Array, bts)
 		mp["body"] = uint8Array
 	}
