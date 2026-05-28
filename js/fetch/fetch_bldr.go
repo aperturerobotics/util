@@ -5,48 +5,22 @@ package fetch
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"runtime"
 	"strconv"
 	"sync"
 	"unsafe"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 )
 
-type bldrFetchRequest struct {
-	Method         string `json:"method,omitempty"`
-	Header         Header `json:"header,omitempty"`
-	Mode           string `json:"mode,omitempty"`
-	Credentials    string `json:"credentials,omitempty"`
-	Cache          string `json:"cache,omitempty"`
-	Redirect       string `json:"redirect,omitempty"`
-	Referrer       string `json:"referrer,omitempty"`
-	ReferrerPolicy string `json:"referrerPolicy,omitempty"`
-	Integrity      string `json:"integrity,omitempty"`
-	KeepAlive      *bool  `json:"keepAlive,omitempty"`
-	Signal         bool   `json:"signal,omitempty"`
-}
-
-type bldrFetchMeta struct {
-	OK         bool              `json:"ok"`
-	Header     []bldrFetchHeader `json:"header"`
-	Redirected bool              `json:"redirected"`
-	StatusCode int               `json:"statusCode"`
-	StatusText string            `json:"statusText"`
-	Type       string            `json:"type"`
-	URL        string            `json:"url"`
-}
-
-type bldrFetchHeader struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
 type bldrFetchResult struct {
-	resp *Response
-	err  error
+	metaID  uint32
+	metaLen uint32
+	bodyID  uint32
+	bodyLen uint32
+	err     error
 }
 
 var (
@@ -64,6 +38,9 @@ func bldrTinyGoFetchAbort(opID uint32) uint32
 //go:wasmimport gojs bldr.tinygo.takeStoredBytes
 func bldrTinyGoTakeStoredBytes(bytesID uint32, ptr unsafe.Pointer, len uint32) uint32
 
+//go:wasmimport gojs bldr.tinygo.dropStoredBytes
+func bldrTinyGoDropStoredBytes(bytesID uint32) uint32
+
 // Fetch uses Bldr's TinyGo fetch import to make requests without raw
 // syscall/js callbacks or response-object decoding in Go.
 func Fetch(url string, opts *Opts) (*Response, error) {
@@ -78,10 +55,6 @@ func Fetch(url string, opts *Opts) (*Response, error) {
 	ctx := context.Background()
 	if opts != nil && opts.Signal != nil {
 		ctx = opts.Signal
-		stopAbort := context.AfterFunc(ctx, func() {
-			bldrTinyGoFetchAbort(opID)
-		})
-		defer stopAbort()
 	}
 
 	urlBytes := []byte(url)
@@ -100,29 +73,38 @@ func Fetch(url string, opts *Opts) (*Response, error) {
 
 	select {
 	case result := <-ch:
-		return result.resp, result.err
+		return finishBldrFetchResult(result)
 	case <-ctx.Done():
+		deleteBldrFetchOp(opID)
 		bldrTinyGoFetchAbort(opID)
+		select {
+		case result := <-ch:
+			return finishBldrFetchResult(result)
+		default:
+		}
 		return nil, ctx.Err()
 	}
 }
 
 func buildBldrFetchRequest(opts *Opts) ([]byte, []byte, error) {
-	req := bldrFetchRequest{}
+	req := []byte{'{'}
+	first := true
 	var body []byte
 	if opts != nil {
-		req = bldrFetchRequest{
-			Method:         opts.Method,
-			Header:         opts.Header,
-			Mode:           opts.Mode,
-			Credentials:    opts.Credentials,
-			Cache:          opts.Cache,
-			Redirect:       opts.Redirect,
-			Referrer:       opts.Referrer,
-			ReferrerPolicy: opts.ReferrerPolicy,
-			Integrity:      opts.Integrity,
-			KeepAlive:      opts.KeepAlive,
-			Signal:         opts.Signal != nil,
+		req = appendJSONStringField(req, &first, "method", opts.Method)
+		req = appendJSONHeaderField(req, &first, "header", opts.Header)
+		req = appendJSONStringField(req, &first, "mode", opts.Mode)
+		req = appendJSONStringField(req, &first, "credentials", opts.Credentials)
+		req = appendJSONStringField(req, &first, "cache", opts.Cache)
+		req = appendJSONStringField(req, &first, "redirect", opts.Redirect)
+		req = appendJSONStringField(req, &first, "referrer", opts.Referrer)
+		req = appendJSONStringField(req, &first, "referrerPolicy", opts.ReferrerPolicy)
+		req = appendJSONStringField(req, &first, "integrity", opts.Integrity)
+		if opts.KeepAlive != nil {
+			req = appendJSONBoolField(req, &first, "keepAlive", *opts.KeepAlive)
+		}
+		if opts.Signal != nil {
+			req = appendJSONBoolField(req, &first, "signal", true)
 		}
 		if opts.Body != nil {
 			var err error
@@ -132,11 +114,8 @@ func buildBldrFetchRequest(opts *Opts) ([]byte, []byte, error) {
 			}
 		}
 	}
-	reqBytes, err := json.Marshal(req)
-	if err != nil {
-		return nil, nil, err
-	}
-	return reqBytes, body, nil
+	req = append(req, '}')
+	return req, body, nil
 }
 
 func registerBldrFetchOp() (uint32, chan bldrFetchResult) {
@@ -158,56 +137,82 @@ func deleteBldrFetchOp(opID uint32) {
 	bldrFetchMu.Unlock()
 }
 
-func sendBldrFetchResult(opID uint32, result bldrFetchResult) {
+func sendBldrFetchResult(opID uint32, result bldrFetchResult) bool {
 	bldrFetchMu.Lock()
 	ch := bldrFetchOps[opID]
-	bldrFetchMu.Unlock()
-	if ch == nil {
-		return
+	sent := false
+	if ch != nil {
+		select {
+		case ch <- result:
+			sent = true
+		default:
+		}
 	}
-	ch <- result
+	bldrFetchMu.Unlock()
+	return sent
 }
 
 //go:wasmexport BLDR_TINYGO_FETCH_RESOLVE
 func bldrTinyGoFetchResolve(opID uint32, metaID uint32, metaLen uint32, bodyID uint32, bodyLen uint32) {
-	metaBytes, ok := takeBldrStoredBytes(metaID, metaLen)
-	if !ok {
-		sendBldrFetchResult(opID, bldrFetchResult{err: errors.New("fetch metadata unavailable")})
+	if sendBldrFetchResult(opID, bldrFetchResult{
+		metaID:  metaID,
+		metaLen: metaLen,
+		bodyID:  bodyID,
+		bodyLen: bodyLen,
+	}) {
 		return
 	}
-	bodyBytes, ok := takeBldrStoredBytes(bodyID, bodyLen)
-	if !ok {
-		sendBldrFetchResult(opID, bldrFetchResult{err: errors.New("fetch body unavailable")})
-		return
-	}
+	dropBldrStoredBytes(metaID)
+	dropBldrStoredBytes(bodyID)
+}
 
-	var meta bldrFetchMeta
-	if err := json.Unmarshal(metaBytes, &meta); err != nil {
-		sendBldrFetchResult(opID, bldrFetchResult{err: errors.Wrap(err, "decode fetch metadata")})
-		return
+func finishBldrFetchResult(result bldrFetchResult) (*Response, error) {
+	if result.err != nil {
+		return nil, result.err
+	}
+	metaBytes, ok := takeBldrStoredBytes(result.metaID, result.metaLen)
+	if !ok {
+		dropBldrStoredBytes(result.bodyID)
+		return nil, errors.New("fetch metadata unavailable")
+	}
+	bodyBytes, ok := takeBldrStoredBytes(result.bodyID, result.bodyLen)
+	if !ok {
+		return nil, errors.New("fetch body unavailable")
+	}
+	return buildBldrFetchResponse(metaBytes, bodyBytes)
+}
+
+func buildBldrFetchResponse(metaBytes []byte, bodyBytes []byte) (*Response, error) {
+	var parser fastjson.Parser
+	meta, err := parser.ParseBytes(metaBytes)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode fetch metadata")
 	}
 
 	headers := Header{}
-	for _, header := range meta.Header {
-		headers.Add(header.Key, header.Value)
+	for _, item := range meta.GetArray("header") {
+		key := item.GetStringBytes("key")
+		if key == nil {
+			continue
+		}
+		headers.Add(string(key), string(item.GetStringBytes("value")))
 	}
-	statusText := meta.StatusText
-	status := strconv.Itoa(meta.StatusCode)
+	statusText := string(meta.GetStringBytes("statusText"))
+	statusCode := meta.GetInt("statusCode")
+	status := strconv.Itoa(statusCode)
 	if statusText != "" {
 		status += " " + statusText
 	}
-	sendBldrFetchResult(opID, bldrFetchResult{
-		resp: &Response{
-			OK:         meta.OK,
-			Header:     headers,
-			Redirected: meta.Redirected,
-			StatusCode: meta.StatusCode,
-			Status:     status,
-			Type:       meta.Type,
-			URL:        meta.URL,
-			Body:       io.NopCloser(bytes.NewReader(bodyBytes)),
-		},
-	})
+	return &Response{
+		OK:         meta.GetBool("ok"),
+		Header:     headers,
+		Redirected: meta.GetBool("redirected"),
+		StatusCode: statusCode,
+		Status:     status,
+		Type:       string(meta.GetStringBytes("type")),
+		URL:        string(meta.GetStringBytes("url")),
+		Body:       io.NopCloser(bytes.NewReader(bodyBytes)),
+	}, nil
 }
 
 //go:wasmexport BLDR_TINYGO_FETCH_REJECT
@@ -224,6 +229,64 @@ func takeBldrStoredBytes(bytesID uint32, length uint32) ([]byte, bool) {
 		return nil, false
 	}
 	return bytes, true
+}
+
+func dropBldrStoredBytes(bytesID uint32) {
+	bldrTinyGoDropStoredBytes(bytesID)
+}
+
+func appendJSONFieldName(dst []byte, first *bool, name string) []byte {
+	if *first {
+		*first = false
+	} else {
+		dst = append(dst, ',')
+	}
+	dst = strconv.AppendQuote(dst, name)
+	dst = append(dst, ':')
+	return dst
+}
+
+func appendJSONStringField(dst []byte, first *bool, name string, value string) []byte {
+	if value == "" {
+		return dst
+	}
+	dst = appendJSONFieldName(dst, first, name)
+	return strconv.AppendQuote(dst, value)
+}
+
+func appendJSONBoolField(dst []byte, first *bool, name string, value bool) []byte {
+	dst = appendJSONFieldName(dst, first, name)
+	if value {
+		return append(dst, "true"...)
+	}
+	return append(dst, "false"...)
+}
+
+func appendJSONHeaderField(dst []byte, first *bool, name string, header Header) []byte {
+	if len(header) == 0 {
+		return dst
+	}
+	dst = appendJSONFieldName(dst, first, name)
+	dst = append(dst, '{')
+	headerFirst := true
+	for key, values := range header {
+		if headerFirst {
+			headerFirst = false
+		} else {
+			dst = append(dst, ',')
+		}
+		dst = strconv.AppendQuote(dst, key)
+		dst = append(dst, ':', '[')
+		for idx, value := range values {
+			if idx != 0 {
+				dst = append(dst, ',')
+			}
+			dst = strconv.AppendQuote(dst, value)
+		}
+		dst = append(dst, ']')
+	}
+	dst = append(dst, '}')
+	return dst
 }
 
 func bytesPtr(bytes []byte) unsafe.Pointer {
