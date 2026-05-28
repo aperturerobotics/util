@@ -1,4 +1,4 @@
-//go:build js
+//go:build js && (!tinygo || !bldr_tinygo_js_imports)
 
 // Package tinygojs centralizes TinyGo-safe syscall/js helper calls.
 package tinygojs
