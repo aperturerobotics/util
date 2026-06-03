@@ -2,7 +2,7 @@ package unique
 
 import (
 	"fmt"
-	"reflect"
+	"slices"
 	"sort"
 	"testing"
 )
@@ -46,7 +46,7 @@ func TestKeyedList(t *testing.T) {
 		expectedKeys := []int{1, 2}
 		keys := list.GetKeys()
 		sort.Ints(keys) // Ensure the order for comparison
-		if !reflect.DeepEqual(keys, expectedKeys) {
+		if !slices.Equal(keys, expectedKeys) {
 			t.Errorf("expected keys %v, got %v", expectedKeys, keys)
 		}
 	})
@@ -57,7 +57,7 @@ func TestKeyedList(t *testing.T) {
 		sort.Slice(values, func(i, j int) bool {
 			return values[i].id < values[j].id
 		})
-		if !reflect.DeepEqual(values, expectedValues) {
+		if !slices.Equal(values, expectedValues) {
 			t.Errorf("expected values %v, got %v", expectedValues, values)
 		}
 	})
@@ -90,7 +90,7 @@ func TestKeyedList(t *testing.T) {
 		},
 		) {
 			key := fmt.Sprintf("%d-%t-%t", expected.key, expected.added, expected.removed)
-			if change, exists := changesMap[key]; !exists || !reflect.DeepEqual(change.value, expected.value) {
+			if change, exists := changesMap[key]; !exists || change.value != expected.value {
 				t.Errorf("change for key %s not as expected: %+v", key, change)
 			}
 		}
@@ -128,7 +128,7 @@ func TestKeyedList(t *testing.T) {
 			// Since Charlie is already in the list with the same value, no change should be triggered for it
 			{4, appendValues[1], true, false}, // added
 		}
-		if !reflect.DeepEqual(changes, expectedChanges) {
+		if !slices.Equal(changes, expectedChanges) {
 			t.Errorf("expected changes %v, got %v", expectedChanges, changes)
 		}
 	})
@@ -150,7 +150,7 @@ func TestKeyedList(t *testing.T) {
 			{2, testKeyedListValue{2, "Bobby"}, false, true}, // removed by value
 			{4, testKeyedListValue{4, "Dana"}, false, true},  // removed by key
 		}
-		if !reflect.DeepEqual(changes, expectedChanges) {
+		if !slices.Equal(changes, expectedChanges) {
 			t.Errorf("expected changes %v, got %v", expectedChanges, changes)
 		}
 	})

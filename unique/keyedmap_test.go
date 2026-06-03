@@ -2,7 +2,6 @@ package unique
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 )
 
@@ -64,7 +63,7 @@ func TestKeyedMap(t *testing.T) {
 		for _, change := range changes {
 			key := formatChangeKey(change.key, change.added, change.removed)
 			expected, ok := expectedChangesMap[key]
-			if !ok || !reflect.DeepEqual(change.value, expected.value) {
+			if !ok || change.value != expected.value {
 				t.Errorf("Unexpected or incorrect change for key %d: got %+v, want %+v", change.key, change, expected)
 			}
 		}
