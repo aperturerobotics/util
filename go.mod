@@ -16,5 +16,5 @@ require (
 	github.com/aperturerobotics/fastjson v0.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.5-0.20260508084601-d4a50659cfd6
-	golang.org/x/sys v0.45.0
+	golang.org/x/sys v0.46.0
 )
