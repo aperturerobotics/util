@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build !windows && !js && !wasip1 && !plan9
 
 package pipesock
 
@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -128,6 +130,36 @@ func TestBuildPipeListener(t *testing.T) {
 			t.Error("pipe-b not found")
 		}
 	})
+}
+
+func TestBuildPipeListenerRejectsOverlongUnixSocketPath(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootDir := filepath.Join(cwd, strings.Repeat("d", maxUnixSocketPathLength))
+	absolutePipePath := filepath.Join(rootDir, ".pipe-overlong")
+	pipePath := absolutePipePath
+	if relPath, err := filepath.Rel(cwd, absolutePipePath); err == nil && len(relPath) < len(absolutePipePath) {
+		pipePath = relPath
+	}
+
+	_, err = BuildPipeListener(newTestLogger(), rootDir, "overlong")
+	if err == nil {
+		t.Fatal("BuildPipeListener accepted an over-long Unix socket path")
+	}
+	for _, want := range []string{
+		strconv.Itoa(maxUnixSocketPathLength),
+		strconv.Itoa(len(pipePath)),
+		pipePath,
+	} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not name %q", err, want)
+		}
+	}
+	if strings.Contains(err.Error(), "bind: invalid argument") {
+		t.Errorf("BuildPipeListener deferred rejection to bind: %v", err)
+	}
 }
 
 func TestDialPipeListener(t *testing.T) {

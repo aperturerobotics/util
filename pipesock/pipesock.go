@@ -20,12 +20,6 @@ func BuildPipeListener(le *logrus.Entry, rootDir, pipeUuid string) (net.Listener
 	// Create absolute path for the socket
 	absolutePipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
 
-	// Ensure the parent directory exists
-	pipeDir := filepath.Dir(absolutePipePath)
-	if err := os.MkdirAll(pipeDir, 0o755); err != nil {
-		return nil, errors.Wrap(err, "create pipe directory")
-	}
-
 	// Get current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -42,6 +36,15 @@ func BuildPipeListener(le *logrus.Entry, rootDir, pipeUuid string) (net.Listener
 		if err == nil && len(relPath) < len(absolutePipePath) {
 			pipePath = relPath
 		}
+	}
+	if err := validateUnixSocketPath(pipePath); err != nil {
+		return nil, err
+	}
+
+	// Ensure the parent directory exists
+	pipeDir := filepath.Dir(absolutePipePath)
+	if err := os.MkdirAll(pipeDir, 0o755); err != nil {
+		return nil, errors.Wrap(err, "create pipe directory")
 	}
 
 	// remove old pipe file, if exists
