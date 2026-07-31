@@ -14,6 +14,9 @@ type StateRoutineContainer[T comparable] struct {
 	// compare compares if the two states are equivalent
 	// if nil restarts the routine every time SetState is called
 	compare func(t1, t2 T) bool
+	// restartCompare compares if two changed states are equivalent to the routine.
+	// If nil, every state change restarts the routine.
+	restartCompare func(t1, t2 T) bool
 	// stateRoutine contains the state routine function
 	stateRoutine StateRoutine[T]
 	// s contains the current state
@@ -37,6 +40,24 @@ func NewStateRoutineContainer[T comparable](compare func(t1, t2 T) bool, opts ..
 	return &StateRoutineContainer[T]{
 		rc:      NewRoutineContainer(opts...),
 		compare: compare,
+	}
+}
+
+// NewStateRoutineContainerWithRestartCompare constructs a StateRoutineContainer
+// with separate state and routine equivalence comparisons.
+//
+// compare controls whether SetState stores and broadcasts a state change.
+// restartCompare controls whether a stored state change restarts the routine.
+// A nil restartCompare preserves the default of restarting on every state change.
+func NewStateRoutineContainerWithRestartCompare[T comparable](
+	compare,
+	restartCompare func(t1, t2 T) bool,
+	opts ...Option,
+) *StateRoutineContainer[T] {
+	return &StateRoutineContainer[T]{
+		rc:             NewRoutineContainer(opts...),
+		compare:        compare,
+		restartCompare: restartCompare,
 	}
 }
 
@@ -84,10 +105,13 @@ func (s *StateRoutineContainer[T]) GetState() T {
 	return state
 }
 
-// SetState sets the state in the StateRoutineContainer.
+// SetState stores state and reconciles the running routine.
 //
-// Returns if the state changed and if the routine is running.
-// If reset=true the existing routine was canceled or restarted.
+// waitReturn is non-nil when reset is true and closes after the previous
+// routine exits. changed reports whether state was stored and broadcast.
+// reset reports whether an existing routine was canceled or replaced. When
+// changed is true, running reports whether a routine is running after the
+// operation. When changed is false, the other return values are zero values.
 func (s *StateRoutineContainer[T]) SetState(state T) (waitReturn <-chan struct{}, changed, reset, running bool) {
 	s.rc.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		waitReturn, changed, reset, running = s.setStateLocked(state, broadcast)
@@ -97,14 +121,19 @@ func (s *StateRoutineContainer[T]) SetState(state T) (waitReturn <-chan struct{}
 
 // setStateLocked compares and updates the state when mtx is locked.
 func (s *StateRoutineContainer[T]) setStateLocked(state T, broadcast func()) (waitReturn <-chan struct{}, changed, reset, running bool) {
+	previousState := s.s
 	if s.compare == nil {
 		changed = true
 	} else {
-		changed = !s.compare(s.s, state)
+		changed = !s.compare(previousState, state)
 	}
 	if changed {
 		s.s = state
-		waitReturn, reset, running = s.updateStateRoutineLocked(broadcast)
+		if s.restartCompare == nil || !s.restartCompare(previousState, state) {
+			waitReturn, reset, running = s.updateStateRoutineLocked(broadcast)
+		} else {
+			running = s.rc.getRunningLocked()
+		}
 		broadcast()
 	}
 	return
