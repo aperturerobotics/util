@@ -3,6 +3,12 @@ import { configDefaults, defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'happy-dom',
-    exclude: [...configDefaults.exclude, 'dist', 'vendor', '.bldr', 'prototypes'],
+    exclude: [
+      ...configDefaults.exclude,
+      'dist',
+      'vendor',
+      '.bldr',
+      'prototypes',
+    ],
   },
 })
