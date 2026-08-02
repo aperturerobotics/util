@@ -8,6 +8,13 @@ import {
   combineUint8ArrayListTransform,
 } from 'starpc'
 
+// maxPipePathLen is the longest unix socket path this platform binds.
+// sun_path is a fixed-size field and the kernel requires a terminating zero
+// byte inside it, so one byte fewer than the field is usable. Linux sizes
+// sun_path at 108 bytes; darwin and the BSDs use 104, which is also the
+// shortest limit among the unix platforms and covers the rest.
+const maxPipePathLen = process.platform === 'linux' ? 107 : 103
+
 /**
  * Builds a pipe name for IPC communication
  * @param rootDir - The root directory where the pipe will be created (used for unix sockets)
@@ -17,22 +24,31 @@ import {
 export function buildPipeName(rootDir: string, pipeUuid: string): string {
   if (process.platform === 'win32') {
     return `\\\\.\\pipe\\aptre\\${pipeUuid}`
-  } else {
-    // Create absolute path for the socket
-    const absolutePath = path.join(rootDir, `.pipe-${pipeUuid}`)
-    try {
-      // Get relative path from current working directory if possible
-      // Use whichever is shorter (Unix socket paths are limited to ~104 chars)
-      const relPath = path.relative(process.cwd(), absolutePath)
-      if (relPath.length < absolutePath.length) {
-        return relPath
-      }
-      return absolutePath
-    } catch {
-      // If we can't get CWD (e.g., it was deleted), use absolute path
-      return absolutePath
-    }
   }
+
+  // Create absolute path for the socket
+  const absolutePath = path.join(rootDir, `.pipe-${pipeUuid}`)
+  let pipePath = absolutePath
+  try {
+    // Get relative path from current working directory if possible
+    // Use whichever is shorter, since sun_path is small.
+    const relPath = path.relative(process.cwd(), absolutePath)
+    if (relPath.length < absolutePath.length) {
+      pipePath = relPath
+    }
+  } catch {
+    // If we can't get CWD (e.g., it was deleted), use the absolute path
+  }
+
+  // The kernel bounds sun_path, so an over-long path is rejected here by
+  // name rather than at bind time as an opaque invalid argument.
+  const pathLen = Buffer.byteLength(pipePath)
+  if (pathLen > maxPipePathLen) {
+    throw new Error(
+      `unix socket path is ${pathLen} bytes and this platform binds at most ${maxPipePathLen}: ${pipePath}`,
+    )
+  }
+  return pipePath
 }
 
 /**
