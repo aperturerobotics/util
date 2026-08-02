@@ -164,15 +164,13 @@ func TestRoutineContainer(t *testing.T) {
 	// this time, tell the routine to fail
 	expectedErr := errors.New("expected error for testing")
 	exitWithErr.Store(&expectedErr)
-	startWaitExited()
-	k.RestartRoutine()
-
-	<-time.After(time.Millisecond * 50)
-	errPtr := waitExitedReturned.Load()
-	if errPtr == nil {
-		t.FailNow()
-	} else if (*errPtr) != expectedErr {
-		t.FailNow()
+	if !k.RestartRoutine() {
+		t.Fatal("expected routine restart")
+	}
+	waitCtx, cancelWait := context.WithTimeout(ctx, time.Second)
+	defer cancelWait()
+	if err := k.WaitExited(waitCtx, false, nil); err != expectedErr {
+		t.Fatalf("expected restarted routine to return %v, got %v", expectedErr, err)
 	}
 }
 
