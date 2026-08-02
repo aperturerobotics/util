@@ -191,10 +191,11 @@ func extractBunFromZip(zipPath, destDir string) error {
 
 		// Cap at 500MB to prevent decompression bombs.
 		const maxCopySize int64 = 500 * 1024 * 1024
-		_, err = io.CopyN(outFile, rc, maxCopySize)
+		err = copyCapped(outFile, rc, maxCopySize)
 		rc.Close()
 		outFile.Close()
 		if err != nil {
+			os.Remove(destPath)
 			return err
 		}
 
@@ -202,6 +203,21 @@ func extractBunFromZip(zipPath, destDir string) error {
 	}
 
 	return errors.New("bun binary not found in zip")
+}
+
+// copyCapped copies src to dst, rejecting sources of limit or more bytes.
+// A rejected copy returns an error after writing limit bytes to dst; the
+// caller discards the partial output.
+func copyCapped(dst io.Writer, src io.Reader, limit int64) error {
+	n, err := io.CopyN(dst, src, limit)
+	if err == io.EOF {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	// n == limit with no error: src holds at least limit bytes.
+	return errors.Errorf("entry exceeds size limit: %d bytes", n)
 }
 
 // EnsureBun ensures bun is available, downloading it if necessary.
