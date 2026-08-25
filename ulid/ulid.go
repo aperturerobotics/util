@@ -33,6 +33,20 @@ func NewULID() string {
 	return id.stringLower()
 }
 
+// FromSHA256 constructs a stable lowercase ULID from a SHA-256 digest.
+func FromSHA256(sum [32]byte) string {
+	var id ULID
+	const timestampRange = uint64(1)<<48 - minUnixMilli
+	timestamp := uint64(sum[0])<<40 | uint64(sum[1])<<32 |
+		uint64(sum[2])<<24 | uint64(sum[3])<<16 | uint64(sum[4])<<8 | uint64(sum[5])
+	timestamp = minUnixMilli + timestamp%timestampRange
+	var encoded [8]byte
+	binary.BigEndian.PutUint64(encoded[:], timestamp)
+	copy(id[:6], encoded[2:])
+	copy(id[6:], sum[6:16])
+	return id.stringLower()
+}
+
 // ParseULID parses and validates the lowercase ulid is the correct format.
 func ParseULID(id string) (ULID, error) {
 	var result ULID
