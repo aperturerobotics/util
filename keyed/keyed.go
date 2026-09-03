@@ -110,26 +110,6 @@ func (k *Keyed[K, V]) setContextLocked(ctx context.Context, restart bool) {
 	}
 }
 
-// SetContextIfCanceled updates the context to use for the keyed container resolution.
-// If the current r.ctx is not nil and not canceled, does nothing.
-// If the passed ctx is nil or canceled, does nothing.
-// if restart is true, all errored routines also restart
-// Returns if the context was updated.
-func (k *Keyed[K, V]) SetContextIfCanceled(ctx context.Context, restart bool) bool {
-	var updated bool
-	k.mtx.Lock()
-	nextCtx := k.ctx
-	if nextCtx == nil || nextCtx.Err() != nil {
-		if ctx != nil && ctx.Err() == nil {
-			nextCtx = ctx
-			updated = true
-		}
-	}
-	k.setContextLocked(nextCtx, restart)
-	k.mtx.Unlock()
-	return updated
-}
-
 // ClearContext clears the context and shuts down any running routines.
 func (k *Keyed[K, V]) ClearContext() {
 	k.SetContext(nil, false)
