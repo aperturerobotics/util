@@ -52,21 +52,21 @@
     "precommit": "bun run format"
   },
   "devDependencies": {
-    "@aptre/common": "0.35.0",
+    "@aptre/common": "0.35.3",
     "@typescript/native-preview": "^7.0.0-dev.20260210.1",
     "depcheck": "^1.4.7",
     "happy-dom": "^20.8.9",
-    "oxfmt": "0.61.0",
+    "oxfmt": "0.66.0",
     "oxlint": "^1.76.0",
     "rimraf": "^6.1.3",
     "typescript": "^7.0.0",
-    "vitest": "^4.1.2"
+    "vitest": "^5.0.0"
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "1.1.1",
     "it-pipe": "^3.0.1",
     "it-pushable": "^3.2.3",
-    "starpc": "^0.50.0"
+    "starpc": "^0.52.0"
   },
   "resolutions": {
     "@aptre/protobuf-es-lite": "1.1.1"
