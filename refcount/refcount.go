@@ -520,12 +520,11 @@ func (r *RefCount[T]) resolve(
 ) {
 	defer close(doneCh)
 
+	// Preserve the resolver completion chain even when this queued attempt is
+	// canceled. Its successor must wait for predecessor cleanup, and the
+	// cancellation must reach the invalidation handling below.
 	if waitCh != nil {
-		select {
-		case <-ctx.Done():
-			return
-		case <-waitCh:
-		}
+		<-waitCh
 	}
 	if delay > 0 {
 		timer := time.NewTimer(delay)
