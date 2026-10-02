@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"testing"
+	"time"
 )
 
 // adapted from src/sync/mutex_test.go in Go
@@ -52,6 +53,88 @@ func TestMutex(t *testing.T) {
 	for range 10 {
 		<-c
 	}
+}
+
+// waitForWaiters waits until n callers are queued on m.
+func waitForWaiters(m *Mutex, n int) {
+	for {
+		m.mtx.Lock()
+		queued := len(m.waiters)
+		m.mtx.Unlock()
+		if queued == n {
+			return
+		}
+		runtime.Gosched()
+	}
+}
+
+// TestMutexHandsOffInArrivalOrder checks that a caller that releases and locks
+// again queues behind an earlier waiter.
+func TestMutexHandsOffInArrivalOrder(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var m Mutex
+	release, err := m.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Queue a waiter behind the holder.
+	order := make(chan string, 2)
+	go func() {
+		waiterRelease, err := m.Lock(ctx)
+		if err != nil {
+			order <- err.Error()
+			return
+		}
+		order <- "waiter"
+		waiterRelease()
+	}()
+	waitForWaiters(&m, 1)
+
+	// Release and lock again at once.
+	release()
+	release, err = m.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	order <- "holder"
+	release()
+	if first := <-order; first != "waiter" {
+		t.Fatalf("first acquirer = %q, want waiter", first)
+	}
+}
+
+// TestMutexCanceledWaiterLeavesQueue checks that a canceled waiter neither
+// receives nor blocks the lock.
+func TestMutexCanceledWaiterLeavesQueue(t *testing.T) {
+	var m Mutex
+	release, err := m.Lock(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Cancel a queued waiter.
+	ctx, cancel := context.WithCancel(context.Background())
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := m.Lock(ctx)
+		errCh <- err
+	}()
+	waitForWaiters(&m, 1)
+	cancel()
+	if err := <-errCh; err != context.Canceled {
+		t.Fatalf("canceled Lock error = %v, want context.Canceled", err)
+	}
+
+	// The release unlocks the mutex instead of handing it to the canceled waiter.
+	release()
+	tryRelease, ok := m.TryLock()
+	if !ok {
+		t.Fatal("TryLock failed after the only waiter canceled")
+	}
+	tryRelease()
 }
 
 var misuseTests = []struct {

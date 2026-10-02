@@ -2,126 +2,99 @@ package csync
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"sync/atomic"
 
-	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 )
 
-// Mutex implements a mutex with a Broadcast.
-// Implements a mutex that accepts a Context.
-// An empty value Mutex{} is valid.
+// Mutex implements a mutex that accepts a Context.
+//
+// Waiters acquire the lock in arrival order: a release hands the lock to the
+// longest waiting caller, so a caller that releases and locks again queues
+// behind the others instead of starving them. An empty value Mutex{} is valid.
 type Mutex struct {
-	// bcast is broadcast when below fields change
-	bcast broadcast.Broadcast
-	// locked indicates the mutex is locked
+	// mtx guards the fields below.
+	mtx sync.Mutex
+	// locked indicates the mutex is held. It stays set while waiters remain.
 	locked bool
+	// waiters is the queue of callers waiting for the lock, oldest first.
+	waiters []chan struct{}
 }
 
 // Lock attempts to hold a lock on the Mutex.
 // Returns a lock release function or an error.
 func (m *Mutex) Lock(ctx context.Context) (func(), error) {
-	// status:
-	// 0: waiting for lock
-	// 1: locked
-	// 2: unlocked (released)
-	var status atomic.Int32
-	var waitCh <-chan struct{}
-	m.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		if m.locked {
-			// keep waiting
-			waitCh = getWaitCh()
-		} else {
-			// 0: waiting for lock
-			// 1: have the lock
-			swapped := status.CompareAndSwap(0, 1)
-			if swapped {
-				m.locked = true
-			}
-		}
-	})
+	// Take a free lock, otherwise queue for it.
+	m.mtx.Lock()
+	if !m.locked {
+		m.locked = true
+		m.mtx.Unlock()
+		return m.newRelease(), nil
+	}
+	handoff := make(chan struct{})
+	m.waiters = append(m.waiters, handoff)
+	m.mtx.Unlock()
 
-	release := func() {
-		pre := status.Swap(2)
-		// 1: we have the lock
-		if pre != 1 {
-			return
-		}
+	// Wait for a release to hand over the lock.
+	select {
+	case <-handoff:
+		return m.newRelease(), nil
+	case <-ctx.Done():
+	}
 
-		// unlock
-		m.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			m.locked = false
-			broadcast()
+	// Leave the queue, passing on a lock handed over during cancellation.
+	m.mtx.Lock()
+	select {
+	case <-handoff:
+		m.unlockLocked()
+	default:
+		m.waiters = slices.DeleteFunc(m.waiters, func(ch chan struct{}) bool {
+			return ch == handoff
 		})
 	}
-
-	// fast path: we locked the mutex
-	if status.Load() == 1 {
-		return release, nil
-	}
-
-	// slow path: watch for changes
-	for {
-		select {
-		case <-ctx.Done():
-			release()
-			return nil, context.Canceled
-		case <-waitCh:
-		}
-
-		m.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			// keep waiting for the lock
-			if m.locked {
-				waitCh = getWaitCh()
-				return
-			}
-
-			// 0: waiting for lock
-			// 1: have the lock
-			swapped := status.CompareAndSwap(0, 1)
-			if swapped {
-				m.locked = true
-			}
-		})
-
-		nstatus := status.Load()
-		switch nstatus {
-		case 1:
-			return release, nil
-		case 2:
-			return nil, context.Canceled
-		}
-	}
+	m.mtx.Unlock()
+	return nil, context.Canceled
 }
 
 // TryLock attempts to hold a lock on the Mutex.
 // Returns a lock release function or nil if the lock could not be grabbed.
 func (m *Mutex) TryLock() (func(), bool) {
-	var unlocked atomic.Bool
-	m.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		if m.locked {
-			unlocked.Store(true)
-		} else {
-			m.locked = true
-		}
-	})
-
-	// we failed to lock the mutex
-	if unlocked.Load() {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	if m.locked {
 		return nil, false
 	}
+	m.locked = true
+	return m.newRelease(), true
+}
 
+// newRelease returns the release function of a held lock. Calls after the
+// first do nothing.
+func (m *Mutex) newRelease() func() {
+	var released atomic.Bool
 	return func() {
-		if unlocked.Swap(true) {
+		if released.Swap(true) {
 			return
 		}
+		m.mtx.Lock()
+		m.unlockLocked()
+		m.mtx.Unlock()
+	}
+}
 
-		m.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			m.locked = false
-			broadcast()
-		})
-	}, true
+// unlockLocked hands the lock to the oldest waiter, or unlocks the mutex when
+// none waits. The caller holds mtx.
+func (m *Mutex) unlockLocked() {
+	if len(m.waiters) == 0 {
+		m.locked = false
+		return
+	}
+	next := m.waiters[0]
+	m.waiters[0] = nil
+	m.waiters = m.waiters[1:]
+	close(next)
 }
 
 // Locker returns a MutexLocker that uses context.Background to lock the Mutex.
