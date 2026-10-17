@@ -338,7 +338,8 @@ func (r *RefCount[T]) ResolveWithReleased(ctx context.Context, released func()) 
 // Access adds a reference, waits for a value, and calls the callback.
 // Releases the reference once the callback has returned.
 // The context will be canceled if the value is removed / changed.
-// Return context.Canceled if the context is canceled.
+// Returns the context's error once ctx ends, so a deadline stays distinguishable
+// from a cancellation.
 // The callback may be restarted if the context is canceled and a new value is resolved.
 // ctx and cb cannot be nil
 func (r *RefCount[T]) Access(ctx context.Context, cb func(ctx context.Context, val T) error) error {
@@ -401,8 +402,8 @@ func (r *RefCount[T]) Access(ctx context.Context, cb func(ctx context.Context, v
 			}()
 
 			// stop here if the context is canceled
-			if ctx.Err() != nil {
-				return context.Canceled
+			if err := ctx.Err(); err != nil {
+				return err
 			}
 
 			// return now if the nonce is the same (nothing changed)
@@ -418,7 +419,7 @@ func (r *RefCount[T]) Access(ctx context.Context, cb func(ctx context.Context, v
 		// wait for something to change
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return ctx.Err()
 		case <-waitCh:
 		}
 	}

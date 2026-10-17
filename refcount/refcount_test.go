@@ -523,3 +523,18 @@ func TestRefCount_ResolveAsRefCount(t *testing.T) {
 	}
 	ref.Release()
 }
+
+// TestRefCount_AccessDeadline tests that Access reports a context deadline.
+func TestRefCount_AccessDeadline(t *testing.T) {
+	// Resolve nothing, so Access waits until its context ends.
+	rc := NewRefCount(context.Background(), false, nil, nil, func(ctx context.Context, released func()) (*int, func(), error) {
+		<-ctx.Done()
+		return nil, nil, ctx.Err()
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	err := rc.Access(ctx, func(ctx context.Context, val *int) error { return nil })
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected deadline exceeded but got %v", err)
+	}
+}
