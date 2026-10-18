@@ -3,64 +3,37 @@ package ioproxy
 import (
 	"bytes"
 	"io"
+	"net"
 	"sync"
 	"testing"
 )
 
+// TestProxyStreams checks that bytes written to one stream's far end arrive at
+// the other stream's far end, and that closing one side closes both.
 func TestProxyStreams(t *testing.T) {
+	// Each proxied stream is one end of its own pipe; the test holds the far ends.
 	data := []byte("Hello, World!")
-
-	// Create pipe connections to simulate the streams.
-	s1Reader, s1Writer := io.Pipe()
-	s2Reader, s2Writer := io.Pipe()
-
-	// Wrap the pipe connections with our custom readWriteCloser type.
-	s1 := &readWriteCloser{
-		Reader: s1Reader,
-		Writer: s1Writer,
-		Closer: s1Writer,
-	}
-	s2 := &readWriteCloser{
-		Reader: s2Reader,
-		Writer: s2Writer,
-		Closer: s2Writer,
-	}
-
-	// Initialize the wait group to synchronize the callbacks.
-	wg := sync.WaitGroup{}
+	s1, far1 := net.Pipe()
+	s2, far2 := net.Pipe()
+	var wg sync.WaitGroup
 	wg.Add(2)
+	ProxyStreams(s1, s2, wg.Done)
 
-	// Create a callback function to be called when the streams are closed.
-	cb := func() {
-		wg.Done()
-	}
-
-	// Start proxying the streams.
-	ProxyStreams(s1, s2, cb)
-
-	// Write the data to s1Writer.
+	// Write through the first stream and close it.
 	go func() {
-		_, _ = s1Writer.Write(data)
-		s1Writer.Close()
+		_, _ = far1.Write(data)
+		_ = far1.Close()
 	}()
 
-	// Read the data from s2Reader.
-	buf, err := io.ReadAll(s2Reader)
+	// Read until the proxy closes the second stream.
+	buf, err := io.ReadAll(far2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	// Wait for the callbacks to be called.
 	wg.Wait()
 
-	// Check if the data was correctly proxied.
+	// Both directions stopped and the bytes arrived unchanged.
 	if !bytes.Equal(data, buf) {
-		t.Fail()
+		t.Fatalf("proxied %q, want %q", buf, data)
 	}
-}
-
-type readWriteCloser struct {
-	io.Reader
-	io.Writer
-	io.Closer
 }
