@@ -2,14 +2,9 @@
 // @generated from file github.com/aperturerobotics/util/backoff/backoff.proto (package backoff, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
-
-export const protobufPackage = 'backoff'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * BackoffKind is the kind of backoff.
@@ -19,32 +14,55 @@ export const protobufPackage = 'backoff'
 export enum BackoffKind {
   /**
    * BackoffKind_UNKNOWN defaults to BackoffKind_EXPONENTIAL
-   *
-   * @generated from enum value: BackoffKind_UNKNOWN = 0;
    */
   BackoffKind_UNKNOWN = 0,
 
   /**
    * BackoffKind_EXPONENTIAL is an exponential backoff.
-   *
-   * @generated from enum value: BackoffKind_EXPONENTIAL = 1;
    */
   BackoffKind_EXPONENTIAL = 1,
 
   /**
    * BackoffKind_CONSTANT is a constant backoff.
-   *
-   * @generated from enum value: BackoffKind_CONSTANT = 2;
    */
   BackoffKind_CONSTANT = 2,
 }
 
-// BackoffKind_Enum is the enum type for BackoffKind.
-export const BackoffKind_Enum = createEnumType('backoff.BackoffKind', [
-  { no: 0, name: 'BackoffKind_UNKNOWN' },
-  { no: 1, name: 'BackoffKind_EXPONENTIAL' },
-  { no: 2, name: 'BackoffKind_CONSTANT' },
-])
+export const BackoffKind_Enum = /* @__PURE__ */ createEnumType(
+  'backoff.BackoffKind',
+  [
+    [0, 'BackoffKind_UNKNOWN'],
+    [1, 'BackoffKind_EXPONENTIAL'],
+    [2, 'BackoffKind_CONSTANT'],
+  ],
+)
+
+/**
+ * Backoff configures a backoff.
+ *
+ * @generated from message backoff.Backoff
+ */
+export interface Backoff {
+  /**
+   * BackoffKind is the kind of backoff.
+   */
+  backoffKind?: BackoffKind
+  /**
+   * Exponential is the arguments for an exponential backoff.
+   */
+  exponential?: Exponential
+  /**
+   * Constant is the arugment for a constant backoff.
+   */
+  constant?: Constant
+}
+
+export const Backoff: MessageType<Backoff> =
+  /* @__PURE__ */ createMessageType<Backoff>('backoff.Backoff', () => [
+    [1, 'backoff_kind', 14, 0, BackoffKind_Enum],
+    [2, 'exponential', 11, 0, Exponential.codec],
+    [3, 'constant', 11, 0, Constant.codec],
+  ])
 
 /**
  * Exponential is the exponential arguments.
@@ -55,22 +73,16 @@ export interface Exponential {
   /**
    * InitialInterval is the initial interval in milliseconds.
    * Default: 800ms.
-   *
-   * @generated from field: uint32 initial_interval = 1;
    */
   initialInterval?: number
   /**
    * Multiplier is the timing multiplier.
    * Default: 1.8
-   *
-   * @generated from field: float multiplier = 2;
    */
   multiplier?: number
   /**
    * MaxInterval is the maximum timing interval in milliseconds.
    * Default: 20 seconds
-   *
-   * @generated from field: uint32 max_interval = 3;
    */
   maxInterval?: number
   /**
@@ -80,37 +92,24 @@ export interface Exponential {
    * randomized interval = RetryInterval * (random value in range [1 - RandomizationFactor, 1 + RandomizationFactor])
    *
    * Default: 0 (disabled)
-   *
-   * @generated from field: float randomization_factor = 4;
    */
   randomizationFactor?: number
   /**
    * MaxElapsedTime if set specifies a maximum time for the backoff, in milliseconds.
    * After this time the backoff and attached process terminates.
    * May be empty, might be ignored.
-   *
-   * @generated from field: uint32 max_elapsed_time = 5;
    */
   maxElapsedTime?: number
 }
 
-// Exponential contains the message type declaration for Exponential.
-export const Exponential: MessageType<Exponential> = createMessageType({
-  typeName: 'backoff.Exponential',
-  fields: [
-    { no: 1, name: 'initial_interval', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 2, name: 'multiplier', kind: 'scalar', T: ScalarType.FLOAT },
-    { no: 3, name: 'max_interval', kind: 'scalar', T: ScalarType.UINT32 },
-    {
-      no: 4,
-      name: 'randomization_factor',
-      kind: 'scalar',
-      T: ScalarType.FLOAT,
-    },
-    { no: 5, name: 'max_elapsed_time', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Exponential: MessageType<Exponential> =
+  /* @__PURE__ */ createMessageType<Exponential>('backoff.Exponential', () => [
+    [1, 'initial_interval', 13],
+    [2, 'multiplier', 2],
+    [3, 'max_interval', 13],
+    [4, 'randomization_factor', 2],
+    [5, 'max_elapsed_time', 13],
+  ])
 
 /**
  * Constant contains constant backoff options.
@@ -121,54 +120,11 @@ export interface Constant {
   /**
    * Interval is the timing to back off, in milliseconds.
    * Defaults to 5 seconds.
-   *
-   * @generated from field: uint32 interval = 1;
    */
   interval?: number
 }
 
-// Constant contains the message type declaration for Constant.
-export const Constant: MessageType<Constant> = createMessageType({
-  typeName: 'backoff.Constant',
-  fields: [
-    { no: 1, name: 'interval', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
-
-/**
- * Backoff configures a backoff.
- *
- * @generated from message backoff.Backoff
- */
-export interface Backoff {
-  /**
-   * BackoffKind is the kind of backoff.
-   *
-   * @generated from field: backoff.BackoffKind backoff_kind = 1;
-   */
-  backoffKind?: BackoffKind
-  /**
-   * Exponential is the arguments for an exponential backoff.
-   *
-   * @generated from field: backoff.Exponential exponential = 2;
-   */
-  exponential?: Exponential
-  /**
-   * Constant is the arugment for a constant backoff.
-   *
-   * @generated from field: backoff.Constant constant = 3;
-   */
-  constant?: Constant
-}
-
-// Backoff contains the message type declaration for Backoff.
-export const Backoff: MessageType<Backoff> = createMessageType({
-  typeName: 'backoff.Backoff',
-  fields: [
-    { no: 1, name: 'backoff_kind', kind: 'enum', T: BackoffKind_Enum },
-    { no: 2, name: 'exponential', kind: 'message', T: () => Exponential },
-    { no: 3, name: 'constant', kind: 'message', T: () => Constant },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Constant: MessageType<Constant> =
+  /* @__PURE__ */ createMessageType<Constant>('backoff.Constant', () => [
+    [1, 'interval', 13],
+  ])

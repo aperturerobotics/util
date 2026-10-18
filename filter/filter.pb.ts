@@ -2,10 +2,8 @@
 // @generated from file github.com/aperturerobotics/util/filter/filter.proto (package filter, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
-
-export const protobufPackage = 'filter'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * StringFilter matches the value of a string against a set of rules.
@@ -17,73 +15,47 @@ export const protobufPackage = 'filter'
 export interface StringFilter {
   /**
    * Empty matches the value against the empty value.
-   *
-   * @generated from field: bool empty = 1;
    */
   empty?: boolean
   /**
    * NotEmpty matches the value against a not-empty value.
-   *
-   * @generated from field: bool not_empty = 2;
    */
   notEmpty?: boolean
   /**
    * Value matches an exact value.
-   *
-   * @generated from field: string value = 3;
    */
   value?: string
   /**
    * Values matches one or more exact values.
    * If any of the values match, this field is considered matched.
-   *
-   * @generated from field: repeated string values = 4;
    */
   values?: string[]
   /**
    * Re matches the value against a regular expression.
-   *
-   * @generated from field: string re = 5;
    */
   re?: string
   /**
    * HasPrefix checks if the value has the given prefix.
-   *
-   * @generated from field: string has_prefix = 6;
    */
   hasPrefix?: string
   /**
    * HasSuffix checks if the value has the given suffix.
-   *
-   * @generated from field: string has_suffix = 7;
    */
   hasSuffix?: string
   /**
    * Contains checks if the value contains the given value.
-   *
-   * @generated from field: string contains = 8;
    */
   contains?: string
 }
 
-// StringFilter contains the message type declaration for StringFilter.
-export const StringFilter: MessageType<StringFilter> = createMessageType({
-  typeName: 'filter.StringFilter',
-  fields: [
-    { no: 1, name: 'empty', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 2, name: 'not_empty', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'value', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 4,
-      name: 'values',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 5, name: 're', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'has_prefix', kind: 'scalar', T: ScalarType.STRING },
-    { no: 7, name: 'has_suffix', kind: 'scalar', T: ScalarType.STRING },
-    { no: 8, name: 'contains', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const StringFilter: MessageType<StringFilter> =
+  /* @__PURE__ */ createMessageType<StringFilter>('filter.StringFilter', () => [
+    [1, 'empty', 8],
+    [2, 'not_empty', 8],
+    [3, 'value', 9],
+    [4, 'values', 9, 1],
+    [5, 're', 9],
+    [6, 'has_prefix', 9],
+    [7, 'has_suffix', 9],
+    [8, 'contains', 9],
+  ])

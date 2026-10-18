@@ -63,15 +63,15 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
-    "@aptre/protobuf-es-lite": "1.1.1",
+    "@aptre/protobuf-es-lite": "1.2.1",
     "it-pipe": "^3.0.1",
     "it-pushable": "^3.2.3",
-    "starpc": "^0.50.0"
+    "starpc": "^0.52.3"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "1.1.1"
+    "@aptre/protobuf-es-lite": "1.2.1"
   },
   "overrides": {
-    "@aptre/protobuf-es-lite": "1.1.1"
+    "@aptre/protobuf-es-lite": "1.2.1"
   }
 }
