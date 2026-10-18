@@ -263,3 +263,53 @@ func TestRoutineContainer_WithBackoff(t *testing.T) {
 	// expect backoffs to occur
 	<-vals
 }
+
+// TestRoutineContainer_StoppedRoutineJoinsNext checks that a routine stopped by
+// SetRoutine(nil) is joined by the next routine, so routines never overlap and
+// the last stop's channel closes only after every earlier routine exits.
+func TestRoutineContainer_StoppedRoutineJoinsNext(t *testing.T) {
+	// Run a first routine that ignores cancellation until released.
+	k := NewRoutineContainer()
+	k.SetContext(context.Background(), false)
+	releaseA := make(chan struct{})
+	startedA := make(chan struct{})
+	var bRan atomic.Bool
+	k.SetRoutine(func(ctx context.Context) error {
+		close(startedA)
+		<-releaseA
+		return ctx.Err()
+	})
+	<-startedA
+
+	// Stop it with a nil routine, then start and stop a second routine.
+	if done, _ := k.SetRoutine(nil); done == nil {
+		t.Fatal("stopping a running routine returned no exit channel")
+	}
+	k.SetRoutine(func(ctx context.Context) error {
+		bRan.Store(true)
+		<-ctx.Done()
+		return ctx.Err()
+	})
+	done, _ := k.SetRoutine(nil)
+	if done == nil {
+		t.Fatal("stopping the second routine returned no exit channel")
+	}
+
+	// The second routine neither runs nor exits while the first one runs.
+	select {
+	case <-done:
+		t.Fatal("exit channel closed while the first routine still runs")
+	case <-time.After(20 * time.Millisecond):
+	}
+	if bRan.Load() {
+		t.Fatal("second routine ran while the first routine still runs")
+	}
+
+	// Releasing the first routine lets the last stop's channel close.
+	close(releaseA)
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("exit channel did not close after every routine exited")
+	}
+}

@@ -25,6 +25,9 @@ type RoutineContainer struct {
 	ctx context.Context
 	// routine is the current running routine, if any
 	routine *runningRoutine
+	// stoppedExitedCh closes when the routine stopped by the last
+	// SetRoutine(nil) exits. The next routine waits for it before starting.
+	stoppedExitedCh <-chan struct{}
 	// retryBo is the retry backoff if retrying is enabled.
 	retryBo cbackoff.BackOff
 }
@@ -141,8 +144,8 @@ func (k *RoutineContainer) getRunningLocked() bool {
 // SetRoutine sets the routine to execute, resetting the existing, if set.
 // If the specified routine is nil, shuts down the current routine.
 // Returns if the current routine was stopped or overwritten.
-// Returns a channel which will be closed when the previous routine exits.
-// The waitReturn channel will be nil if there was no previous routine (reset=false).
+// Returns a channel which will be closed when every previous routine has exited,
+// including one stopped by an earlier nil routine. It is nil if none remain.
 func (k *RoutineContainer) SetRoutine(routine Routine) (waitReturn <-chan struct{}, reset bool) {
 	k.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		waitReturn, reset = k.setRoutineLocked(routine, broadcast)
@@ -154,11 +157,15 @@ func (k *RoutineContainer) SetRoutine(routine Routine) (waitReturn <-chan struct
 // Returns if the current routine was stopped or overwritten.
 // Returns a channel to wait for in order to wait for the previous routine to exit.
 func (k *RoutineContainer) setRoutineLocked(routine Routine, broadcast func()) (<-chan struct{}, bool) {
+	// Drop a canceled root context.
 	if k.ctx != nil && k.ctx.Err() != nil {
 		k.ctx = nil
 	}
 
-	var prevExitedCh <-chan struct{}
+	// Stop the previous routine. Its exit channel, or the one left by an
+	// earlier nil routine, covers every routine before the next one.
+	prevExitedCh := k.stoppedExitedCh
+	k.stoppedExitedCh = nil
 	prevRoutine := k.routine
 	var wasReset bool
 	if prevRoutine != nil {
@@ -168,15 +175,22 @@ func (k *RoutineContainer) setRoutineLocked(routine Routine, broadcast func()) (
 		prevRoutine.stop()
 	}
 
+	// Start the next routine behind the previous one, or keep the previous
+	// exit channel for the routine after this gap. Until it starts, the new
+	// routine has exited once its predecessor has.
 	if routine != nil {
 		r := newRunningRoutine(k, routine)
+		r.exitedCh = prevExitedCh
 		k.routine = r
 		if k.ctx != nil {
-			k.routine.start(k.ctx, prevExitedCh, false)
+			r.start(k.ctx, prevExitedCh, false)
 		}
 		broadcast()
-	} else if wasReset {
-		broadcast()
+	} else {
+		k.stoppedExitedCh = prevExitedCh
+		if wasReset {
+			broadcast()
+		}
 	}
 
 	return prevExitedCh, wasReset
@@ -233,8 +247,8 @@ type runningRoutine struct {
 	// ctxCancel cancels the context
 	// if nil, not running
 	ctxCancel context.CancelFunc
-	// exitedCh is closed when the routine running with ctx exits
-	// may be nil if ctx == nil
+	// exitedCh is closed when the routine running with ctx exits, and its
+	// predecessors before it. may be nil if ctx == nil
 	exitedCh <-chan struct{}
 	// routine is the routine callback
 	routine Routine
@@ -287,19 +301,19 @@ func (r *runningRoutine) execute(
 	exitedCh chan struct{},
 	waitCh <-chan struct{},
 ) {
-	var err error
+	// Wait for the previous routine even when canceled, so exitedCh closing
+	// means no earlier routine is still running. The previous routine's
+	// context was canceled before this one started.
 	if waitCh != nil {
-		select {
-		case <-ctx.Done():
-			err = context.Canceled
-		case <-waitCh:
-		}
-	} else if ctx.Err() != nil {
-		err = context.Canceled
+		<-waitCh
 	}
 
+	// Run the routine unless it was canceled while waiting.
+	err := ctx.Err()
 	if err == nil {
 		err = r.routine(ctx)
+	} else {
+		err = context.Canceled
 	}
 	close(exitedCh)
 

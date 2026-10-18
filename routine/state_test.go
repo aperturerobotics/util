@@ -66,7 +66,7 @@ func TestStateRoutineContainer(t *testing.T) {
 		select {
 		case nval := <-vals:
 			if expected != 0 && nval != expected {
-				t.Fatalf("expected value %v but got %v", nval, expected)
+				t.Fatalf("expected value %v but got %v", expected, nval)
 			}
 		default:
 			t.FailNow()
@@ -106,6 +106,12 @@ func TestStateRoutineContainer(t *testing.T) {
 
 	// expect nothing happened (no difference)
 	if _, changed, reset, running := k.SetState(2); changed || reset || running {
+		t.FailNow()
+	}
+
+	// start a routine that stays blocked until the context is cleared, so it
+	// has not succeeded and the restart below runs it again
+	if _, changed, _, running := k.SetState(3); !changed || !running {
 		t.FailNow()
 	}
 
@@ -150,7 +156,7 @@ func TestStateRoutineContainer(t *testing.T) {
 
 	close(waitReturn)
 	<-time.After(time.Millisecond * 50)
-	checkVal(2)
+	checkVal(3)
 	<-time.After(time.Millisecond * 50)
 	if waitExitedReturned.Load() == nil {
 		t.FailNow()

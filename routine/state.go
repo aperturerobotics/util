@@ -139,8 +139,8 @@ func (s *StateRoutineContainer[T]) SwapValue(cb func(val T) T) (nextState T, wai
 // SetStateRoutine sets the routine to execute, resetting the existing, if set.
 // If the specified routine is nil, shuts down the current routine.
 // Returns if the current routine was stopped or overwritten.
-// Returns a channel which will be closed when the previous routine exits.
-// The waitReturn channel will be nil if there was no previous routine (reset=false).
+// Returns a channel which will be closed when every previous routine has exited,
+// including one stopped by an earlier nil routine. It is nil if none remain.
 // If SetContext has not been called or SetState is empty, returns false for running.
 // Note: does not check if routine is equal to the current routine func (cannot compare generic funcs).
 func (s *StateRoutineContainer[T]) SetStateRoutine(routine StateRoutine[T]) (waitReturn <-chan struct{}, reset, running bool) {
