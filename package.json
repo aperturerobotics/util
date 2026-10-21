@@ -20,9 +20,9 @@
   },
   "type": "module",
   "scripts": {
-    "build": "tsgo --project tsconfig.json --noEmit false --outDir ./dist/",
+    "build": "tsrs --project tsconfig.json --noEmit false --outDir ./dist/",
     "check": "bun run typecheck",
-    "deps": "depcheck --ignore-patterns=.oxfmtrc.json,.oxlintrc.json,package.json --ignores depcheck,oxfmt,oxlint,typescript,@typescript/native-preview,starpc,@go/github.com,rimraf,@aptre/common",
+    "deps": "depcheck --ignore-patterns=.oxfmtrc.json,.oxlintrc.json,package.json --ignores depcheck,oxfmt,oxlint,typescript,tsrs,starpc,@go/github.com,rimraf,@aptre/common",
     "typecheck": "tsc --noEmit",
     "codegen": "bun run gen",
     "ci": "bun run build && npm run lint:js && npm run lint:go",
@@ -53,7 +53,7 @@
   },
   "devDependencies": {
     "@aptre/common": "0.35.0",
-    "@typescript/native-preview": "^7.0.0-dev.20260210.1",
+    "tsrs": "0.18.0-ts7.1.0-dev.20260929",
     "depcheck": "^1.4.7",
     "happy-dom": "^20.8.9",
     "oxfmt": "0.61.0",
