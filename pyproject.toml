@@ -1,8 +1,8 @@
 [project]
 name = "aperturerobotics-util"
 version = "0.0.0"
-requires-python = ">=3.11,<3.12"
-dependencies = ["protobuf>=6.33.4,<7"]
+requires-python = ">=3.15,<3.16"
+dependencies = ["protobuf>=7.36.2,<8"]
 license = "MIT"
 license-files = ["LICENSE"]
 
