@@ -7,9 +7,6 @@ run:
   # Concurrency defines how many analyses can run simultaneously.
   # Default is 1.
   concurrency: 4
-  # Modules-download-mode specifies how to download modules.
-  # Allowed values: readonly, vendor, mod. Default is readonly.
-  modules-download-mode: vendor
 
 # Linters configuration.
 linters:
