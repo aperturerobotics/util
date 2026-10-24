@@ -27,3 +27,8 @@ debug.test
 .aider*
 /.tools/
 .env
+
+# Python tooling
+/.venv
+__pycache__/
+*.egg-info/

@@ -1,0 +1,28 @@
+[project]
+name = "aperturerobotics-util"
+version = "0.0.0"
+requires-python = ">=3.11,<3.12"
+dependencies = ["protobuf>=6.33.4,<7"]
+license = "MIT"
+license-files = ["LICENSE"]
+
+[dependency-groups]
+dev = [
+    # The StarPC generator supplies protoc-gen-starpc-python and Ruff.
+    "starpc-python-plugin @ git+https://github.com/aperturerobotics/starpc.git@60aebb7f3a140f0772a63269afce10859d45b27f#subdirectory=python/plugin",
+]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+# The messages install at their module-relative paths, which is where
+# generated bindings in dependent modules import them from.
+[tool.setuptools.packages.find]
+include = ["backoff", "enabled", "filter"]
+namespaces = true
+
+[tool.setuptools.package-data]
+backoff = ["py.typed"]
+enabled = ["py.typed"]
+filter = ["py.typed"]

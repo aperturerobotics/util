@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "protocFlagsHash": "f3371eb4a4768e3b7f3e3ac546ec7bb7da05b08dda4ec8d0fe2f6c63f6b19da9",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.14.0,starpc=v0.49.16,protobuf-es-lite=1.2.1,uv.lock=af68bfe7549e66e43a5ffa05fac676104265c49238c47268caf173f33a6f847f",
+  "packages": {
+    "github.com/aperturerobotics/util/backoff": {
+      "hash": "cd4e45905244ee26382b115ed6c5cb835e15b65312a7a744913745c35c81aeb6",
+      "generatedFiles": [
+        "backoff/backoff_pb2.py",
+        "backoff/backoff_pb2.pyi"
+      ],
+      "protoFiles": [
+        "backoff/backoff.proto"
+      ]
+    },
+    "github.com/aperturerobotics/util/enabled": {
+      "hash": "c0b8dc6d78b07acd6742c58109e9bdedf887006d0cf5e4e593085d59c9e305c3",
+      "generatedFiles": [
+        "enabled/enabled_pb2.py",
+        "enabled/enabled_pb2.pyi"
+      ],
+      "protoFiles": [
+        "enabled/enabled.proto"
+      ]
+    },
+    "github.com/aperturerobotics/util/filter": {
+      "hash": "6758d12ebb0078c9cacd4952c7055728c64fce90af772d98ac653bdcb4939543",
+      "generatedFiles": [
+        "filter/filter_pb2.py",
+        "filter/filter_pb2.pyi"
+      ],
+      "protoFiles": [
+        "filter/filter.proto"
+      ]
+    }
+  }
+}
