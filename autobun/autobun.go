@@ -18,7 +18,7 @@ import (
 )
 
 // DefaultBunVersion is the default version of bun to download.
-const DefaultBunVersion = "1.3.4"
+const DefaultBunVersion = "1.4.4"
 
 // BunDownloadURLTemplate is the URL template for downloading bun releases.
 // Format: https://github.com/oven-sh/bun/releases/download/bun-v{version}/bun-{platform}-{arch}.zip
