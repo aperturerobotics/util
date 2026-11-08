@@ -21,7 +21,8 @@
   "type": "module",
   "scripts": {
     "build": "tsrs --project tsconfig.json --noEmit false --outDir ./dist/",
-    "check": "bun run typecheck",
+    "check": "bun run typecheck && bun run check:tla",
+    "check:tla": "bunx --package @aptre/common@0.38.2 aptre-tla",
     "deps": "depcheck --ignore-patterns=.oxfmtrc.json,.oxlintrc.json,package.json --ignores depcheck,oxfmt,oxlint,typescript,tsrs,starpc,@go/github.com,rimraf,@aptre/common",
     "typecheck": "tsc --noEmit",
     "codegen": "bun run gen",

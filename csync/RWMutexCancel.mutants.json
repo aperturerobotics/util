@@ -1,0 +1,7 @@
+[
+  {
+    "name": "canceling the last writer leaves readers on an unchanged watch",
+    "replace": [["WakeOnCancel == TRUE", "WakeOnCancel == FALSE"]],
+    "expect": "ReaderNotStranded"
+  }
+]

@@ -28,7 +28,7 @@ type RWMutex struct {
 // A single writer OR many readers can hold Lock at a time.
 // If a writer is waiting to lock, readers will wait for it.
 func (m *RWMutex) Lock(ctx context.Context, write bool) (func(), error) {
-	// status:
+	// Track this request through waiting, holding and released states.
 	// 0: waiting for lock
 	// 1: locked
 	// 2: unlocked (released)
@@ -51,17 +51,22 @@ func (m *RWMutex) Lock(ctx context.Context, write bool) (func(), error) {
 		}
 	})
 
+	// Release a held slot or withdraw this request from the waiting writers.
 	release := func() {
 		pre := status.Swap(2)
 		if pre == 2 {
 			return
 		}
 
+		// Publish changes that allow another waiting request to proceed.
 		m.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			if pre == 0 {
 				// 0: waiting for lock
 				if write {
 					m.writeWaiting--
+					if m.writeWaiting == 0 && !m.writing {
+						broadcast()
+					}
 				}
 			} else {
 				// 1: we have the lock
@@ -201,4 +206,4 @@ func (l *RWMutexLocker) Unlock() {
 }
 
 // _ is a type assertion
-var _ sync.Locker = ((*RWMutexLocker)(nil))
+var _ sync.Locker = (*RWMutexLocker)(nil)
