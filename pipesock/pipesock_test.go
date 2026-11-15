@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -406,9 +405,15 @@ func TestAbsolutePathFallback(t *testing.T) {
 }
 
 // getTestScriptPath returns the absolute path to pipesock_test.ts.
-func getTestScriptPath() string {
-	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), "pipesock_test.ts")
+//
+// go test runs in the package directory, which holds the script.
+func getTestScriptPath(t testing.TB) string {
+	t.Helper()
+	path, err := filepath.Abs("pipesock_test.ts")
+	if err != nil {
+		t.Fatalf("resolve test script path: %v", err)
+	}
+	return path
 }
 
 // TestTypeScriptClient tests Go server with TypeScript client using bun.
@@ -427,7 +432,7 @@ func TestTypeScriptClient(t *testing.T) {
 	t.Logf("using bun at: %s", bunPath)
 
 	// Get the test script path
-	testScript := getTestScriptPath()
+	testScript := getTestScriptPath(t)
 	if _, err := os.Stat(testScript); os.IsNotExist(err) {
 		t.Fatalf("test script not found: %s", testScript)
 	}
