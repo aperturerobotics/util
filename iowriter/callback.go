@@ -1,3 +1,4 @@
+// Package iowriter implements io.Writer with a callback.
 package iowriter
 
 import (

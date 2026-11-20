@@ -1,3 +1,8 @@
+// Package memo runs a function at most once and caches its result.
+//
+// MemoizeFunc returns a function that calls fn on its first call; concurrent
+// and later calls wait for that call and return the same value and error.
+// Unlike promise.Once, an error is cached too.
 package memo
 
 import (

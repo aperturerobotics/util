@@ -40,10 +40,10 @@ func NewStateRoutineContainer[T comparable](compare func(t1, t2 T) bool, opts ..
 	}
 }
 
-// NewRoutineContainerWithLogger constructs a new RoutineContainer instance.
-// Logs when a controller exits without being canceled.
+// NewStateRoutineContainerWithLogger constructs a StateRoutineContainer that
+// logs when the routine exits without being canceled.
 //
-// Note: routines won't start until SetContext is called.
+// Note: routines won't start until SetContext and SetState are called.
 func NewStateRoutineContainerWithLogger[T comparable](compare func(t1, t2 T) bool, le *logrus.Entry, opts ...Option) *StateRoutineContainer[T] {
 	return &StateRoutineContainer[T]{
 		rc:      NewRoutineContainerWithLogger(le, opts...),
@@ -51,12 +51,11 @@ func NewStateRoutineContainerWithLogger[T comparable](compare func(t1, t2 T) boo
 	}
 }
 
-// NewStateRoutineContainer constructs a new StateRoutineContainer with protobuf comparison.
+// NewStateRoutineContainerVT constructs a StateRoutineContainer that compares
+// states with EqualVT.
 //
-// Note: routines won't start until SetContext and SetState is called.
+// Note: routines won't start until SetContext and SetState are called.
 // If the state is equivalent to an empty T (nil if a pointer) the routine is stopped.
-// compare must compare if the two states are equivalent.
-// if compare is nil restarts the routine every time SetState is called.
 func NewStateRoutineContainerVT[T proto.EqualVT[T]](opts ...Option) *StateRoutineContainer[T] {
 	return &StateRoutineContainer[T]{
 		rc:      NewRoutineContainer(opts...),
@@ -64,10 +63,11 @@ func NewStateRoutineContainerVT[T proto.EqualVT[T]](opts ...Option) *StateRoutin
 	}
 }
 
-// NewRoutineContainerWithLogger constructs a new RoutineContainer instance.
-// Logs when a controller exits without being canceled.
+// NewStateRoutineContainerWithLoggerVT constructs a StateRoutineContainer that
+// compares states with EqualVT and logs when the routine exits without being
+// canceled.
 //
-// Note: routines won't start until SetContext is called.
+// Note: routines won't start until SetContext and SetState are called.
 func NewStateRoutineContainerWithLoggerVT[T proto.EqualVT[T]](le *logrus.Entry, opts ...Option) *StateRoutineContainer[T] {
 	return &StateRoutineContainer[T]{
 		rc:      NewRoutineContainerWithLogger(le, opts...),
@@ -110,7 +110,7 @@ func (s *StateRoutineContainer[T]) setStateLocked(state T, broadcast func()) (wa
 	return
 }
 
-// SwapState locks the container, calls the callback, and stores the returned value.
+// SwapValue locks the container, calls the callback, and stores the returned state.
 //
 // Returns the updated value and if the state changed.
 // If reset=true returns a channel which closes when the previous instance has exited.
@@ -193,7 +193,7 @@ func (s *StateRoutineContainer[T]) RestartRoutine() bool {
 // WaitExited waits for the routine to exit and returns the error if any.
 // Note: Will NOT return after the routine is restarted normally.
 // If returnIfNotRunning is set, returns nil if no routine is running.
-// errCh is an optional error channel (can be nil)
+// errCh is an optional error channel (can be nil).
 func (s *StateRoutineContainer[T]) WaitExited(ctx context.Context, returnIfNotRunning bool, errCh <-chan error) error {
 	return s.rc.WaitExited(ctx, returnIfNotRunning, errCh)
 }

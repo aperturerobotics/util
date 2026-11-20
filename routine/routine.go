@@ -1,3 +1,17 @@
+// Package routine runs one replaceable goroutine under a context.
+//
+// A RoutineContainer runs its Routine only while both a routine and a root
+// context are set, and nothing runs before SetContext. SetRoutine replaces the routine, canceling the old one;
+// the new one starts only after every earlier routine has exited. A new
+// context cancels the routine and restarts it unless it last failed; a
+// failed routine reruns when SetContext is called with restart, on
+// RestartRoutine, or after backoff when WithRetry or WithBackoff is set. A
+// routine that returns nil stays stopped until the context changes or it is
+// restarted. WaitExited waits for the current routine to exit.
+//
+// A StateRoutineContainer passes a state value to its routine and restarts
+// the routine when the state changes; an empty state stops it.
+// NewStateResultRoutine publishes each run's result to a PromiseContainer.
 package routine
 
 import (
@@ -56,7 +70,7 @@ func NewRoutineContainerWithLogger(le *logrus.Entry, opts ...Option) *RoutineCon
 // Note: Will NOT return after the routine is restarted normally.
 // If returnIfNotRunning is set, returns nil if no routine is running.
 // If returnIfNotRunning is not set, waits until a routine has started & exited.
-// errCh is an optional error channel (can be nil)
+// errCh is an optional error channel (can be nil).
 func (k *RoutineContainer) WaitExited(ctx context.Context, returnIfNotRunning bool, errCh <-chan error) error {
 	for {
 		var exited bool

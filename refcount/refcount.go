@@ -1,3 +1,14 @@
+// Package refcount resolves a value while references to it are held.
+//
+// A RefCount runs its resolver when the first reference is added and its
+// context is set, and publishes the value to every reference and to optional
+// target containers. When the last reference is released it cancels the
+// resolver and releases the value, unless keepUnref keeps a successful value
+// resolved. A resolver calls its released callback when the value becomes
+// invalid, and Invalidate does the same from outside; either starts a new
+// resolution if references remain. With Options.RetryBackoff, an error that
+// ShouldRetry accepts waits out a backoff and retries instead of becoming
+// the cached error, and ResetBackoff ends the wait early.
 package refcount
 
 import (
@@ -141,7 +152,7 @@ func NewRefCountWithOptions[T comparable](
 }
 
 // WaitRefCountContainer waits for a RefCount container handling errors.
-// targetErr can be nil
+// targetErr can be nil.
 func WaitRefCountContainer[T comparable](
 	ctx context.Context,
 	target *ccontainer.CContainer[T],
@@ -341,7 +352,7 @@ func (r *RefCount[T]) ResolveWithReleased(ctx context.Context, released func()) 
 // Returns the context's error once ctx ends, so a deadline stays distinguishable
 // from a cancellation.
 // The callback may be restarted if the context is canceled and a new value is resolved.
-// ctx and cb cannot be nil
+// ctx and cb cannot be nil.
 func (r *RefCount[T]) Access(ctx context.Context, cb func(ctx context.Context, val T) error) error {
 	var bcast broadcast.Broadcast
 	var currVal T

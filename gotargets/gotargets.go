@@ -1,3 +1,7 @@
+// Package gotargets lists the GOOS and GOARCH pairs the Go toolchain supports.
+//
+// KnownGoDists is generated from go tool dist list by go generate, which runs
+// generate.go.
 package gotargets
 
 import "sort"

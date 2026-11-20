@@ -1,3 +1,11 @@
+// Package promise holds asynchronous results that callers can await.
+//
+// A Promise is set once: SetResult stores a value and an error and wakes
+// every waiter, and later calls return false. Await returns the result, or
+// context.Canceled when ctx ends first. A PromiseContainer holds a Promise
+// that can be replaced, so waiters follow the latest one. Once runs a
+// function on demand, caches a successful result, and runs it again on the
+// next call after an error. PromiseLike is the interface they share.
 package promise
 
 import (

@@ -1,3 +1,5 @@
+// Package gitroot finds the root of the current Git work tree with
+// git rev-parse --show-toplevel.
 package gitroot
 
 import (

@@ -1,3 +1,7 @@
+// Package cqueue holds lock-free concurrent queues.
+//
+// AtomicLIFO is a stack that pushes and pops with compare-and-swap on its top
+// pointer. Pop returns the zero value when the stack is empty.
 package cqueue
 
 import (

@@ -1,3 +1,8 @@
+// Package ioproxy copies data both ways between two streams.
+//
+// ProxyStreams runs one pump in each direction. When either direction ends,
+// that pump closes both streams, so the other pump ends too, and the
+// callback runs once per pump.
 package ioproxy
 
 import (

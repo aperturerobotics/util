@@ -1,3 +1,8 @@
+// Package enabled holds a three-state switch for configuration messages.
+//
+// Enabled is DEFAULT, ENABLE or DISABLE. IsEnabled resolves DEFAULT to the
+// caller's default, and Merge lets a later setting override an earlier one
+// unless the later one is DEFAULT.
 package enabled
 
 import "errors"

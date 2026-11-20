@@ -1,3 +1,9 @@
+// Package padding pads data to a multiple of 32 bytes.
+//
+// PadInPlace zero-fills the data to one byte short of the next multiple and
+// appends a trailer byte holding the padding length, reusing the slice's
+// capacity when it can. UnpadInPlace reads the trailer and removes the
+// padding, rejecting a trailer that the data cannot hold.
 package padding
 
 import (

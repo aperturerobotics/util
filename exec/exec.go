@@ -1,3 +1,9 @@
+// Package exec runs external commands with logging.
+//
+// NewCmd builds a command with defaults. SetCmdLogger logs stderr at debug
+// level and copies it into a buffer, and InterpretCmdErr replaces an exit
+// status error with the last line of that stderr. ExecCmd runs a command to
+// completion, StartCmd starts it, and StartAndWait kills it when ctx ends.
 package exec
 
 import (
@@ -12,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// InterpretCmdErr interprets command errors and extracts meaningful error messages
+// InterpretCmdErr interprets command errors and extracts meaningful error messages.
 func InterpretCmdErr(err error, stderrBuf bytes.Buffer) error {
 	if err != nil && (strings.HasPrefix(err.Error(), "exit status") || strings.HasPrefix(err.Error(), "err: exit status")) {
 		stderrLines := strings.Split(stderrBuf.String(), "\n")
@@ -25,7 +31,7 @@ func InterpretCmdErr(err error, stderrBuf bytes.Buffer) error {
 	return err
 }
 
-// SetCmdLogger configures logging for the command
+// SetCmdLogger configures logging for the command.
 func SetCmdLogger(le *logrus.Entry, cmd *exec.Cmd, buf *bytes.Buffer) {
 	goLogger := le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = io.MultiWriter(buf, goLogger)

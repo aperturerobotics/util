@@ -1,3 +1,4 @@
+// Package iocloser pairs a reader or writer with a close function.
 package iocloser
 
 import (
@@ -12,7 +13,7 @@ type ReadCloser struct {
 	close    func() error
 }
 
-// NewReadCloser builds a new write closer
+// NewReadCloser builds a new read closer.
 func NewReadCloser(rd io.Reader, close func() error) *ReadCloser {
 	return &ReadCloser{
 		rd:    rd,

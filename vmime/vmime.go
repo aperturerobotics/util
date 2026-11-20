@@ -1,3 +1,4 @@
+// Package vmime checks that a string has the form of a MIME type.
 package vmime
 
 import (

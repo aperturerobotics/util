@@ -1,3 +1,4 @@
+// Package scrub overwrites buffers that held sensitive data with zeros.
 package scrub
 
 // Scrub clears a buffer with zeros.

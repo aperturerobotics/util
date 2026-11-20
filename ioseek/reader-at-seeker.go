@@ -1,3 +1,4 @@
+// Package ioseek adapts an io.ReaderAt of known size to an io.ReadSeeker.
 package ioseek
 
 import (

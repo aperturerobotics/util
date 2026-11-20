@@ -1,3 +1,4 @@
+// Package bufio holds bufio.SplitFunc helpers, such as splitting on NUL.
 package util_bufio
 
 // SplitOnNul is a bufio.SplitFunc that splits on NUL characters.

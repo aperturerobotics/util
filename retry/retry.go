@@ -1,3 +1,9 @@
+// Package retry reruns a function with backoff until it succeeds.
+//
+// Retry calls the function until it returns nil, ctx ends, or the backoff
+// returns Stop, waiting the backoff's interval after each error. The function
+// receives a success callback that resets the backoff once it has made
+// progress.
 package retry
 
 import (

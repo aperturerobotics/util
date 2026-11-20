@@ -1,5 +1,12 @@
 //go:build !windows
 
+// Package pipesock opens a local socket between processes on one device.
+//
+// On Unix, BuildPipeListener listens on a socket file named by the pipe ID
+// under a root directory, and DialPipeListener connects to it. The path uses
+// the shorter of the absolute and the working-directory-relative form, and a
+// path longer than the kernel's sun_path limit is rejected by name. On
+// Windows the pipe ID names a named pipe instead.
 package pipesock
 
 import (

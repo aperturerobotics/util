@@ -1,3 +1,9 @@
+// Package ccall runs functions concurrently and waits for them.
+//
+// CallConcurrently passes one shared child context to every function. It
+// returns nil when all return nil, or the first error other than
+// context.Canceled as soon as it arrives; it then cancels the child context
+// but does not wait for the remaining functions to exit.
 package ccall
 
 import (
