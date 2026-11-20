@@ -29,7 +29,8 @@ func DefaultBackoff() backoff.BackOff {
 }
 
 // Retry uses a backoff to re-try a process.
-// If the process returns nil or context canceled, it exits.
+// If the process returns nil or ctx is canceled, it exits.
+// If the backoff returns Stop, it returns the process's last error.
 // If bo is nil, a default one is created.
 // Success function will reset the backoff.
 func Retry(
@@ -55,7 +56,11 @@ func Retry(
 			return nil
 		}
 
+		// Give up once the backoff says to stop.
 		b := bo.NextBackOff()
+		if b == backoff.Stop {
+			return err
+		}
 		le.
 			WithError(err).
 			WithField("backoff", b.String()).
@@ -63,7 +68,7 @@ func Retry(
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(b):
+		case <-time.After(b): //gostyle:timer backoff
 		}
 	}
 }
