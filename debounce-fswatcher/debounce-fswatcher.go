@@ -1,3 +1,8 @@
+// Package debounce_fswatcher batches fsnotify events into quiet periods.
+//
+// DebounceFSWatcherEvents first discards events already queued, then
+// collects events that pass the filter and returns the batch once no event
+// has arrived for the debounce duration.
 package debounce_fswatcher
 
 import (

@@ -1,3 +1,10 @@
+// Package conc runs a queue of jobs on a bounded pool of goroutines.
+//
+// A ConcurrentQueue starts jobs in the order they are enqueued, running up
+// to its concurrency limit at once, or without a limit when the limit is
+// zero or less. Enqueue starts a job at once when a slot is free. WaitIdle
+// waits for the queue to drain and WatchState reports the queued and running
+// counts.
 package conc
 
 import (

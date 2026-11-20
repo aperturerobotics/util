@@ -1,3 +1,11 @@
+// Package csync holds locks whose acquisition accepts a Context.
+//
+// Each lock returns a release function from Lock, or the context's error if
+// it ends first, and the empty value of each is valid. Mutex grants the lock
+// in arrival order. RWMutex admits one writer or many readers, and a waiting
+// writer holds back new readers. PrioMutex grants the oldest waiter of the
+// highest priority and lets a holder see that someone waits. Semaphore admits
+// weight in arrival order up to a limit that can change while in use.
 package csync
 
 import (

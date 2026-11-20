@@ -1,3 +1,6 @@
+// Package linkedlist holds a mutex-guarded singly linked list used as a FIFO
+// queue, with Push, PushFront, Peek, PeekTail and Pop. The empty value is a
+// valid empty list.
 package linkedlist
 
 import "sync"

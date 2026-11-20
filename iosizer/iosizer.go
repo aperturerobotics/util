@@ -1,3 +1,4 @@
+// Package iosizer counts the bytes that pass through a reader and writer.
 package iosizer
 
 import (

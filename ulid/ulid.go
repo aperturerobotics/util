@@ -1,3 +1,10 @@
+// Package ulid builds and parses lowercase ULIDs.
+//
+// A ULID is a 48-bit millisecond timestamp followed by 80 random bits, encoded
+// as 26 lowercase Crockford base32 characters. NewULID uses the current time
+// and crypto/rand. FromSHA256 derives a stable ULID from a digest, mapping
+// its first six bytes to a timestamp. ParseULID accepts only the lowercase
+// form.
 package ulid
 
 import (

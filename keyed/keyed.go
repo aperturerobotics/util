@@ -1,3 +1,18 @@
+// Package keyed runs one goroutine per key in a set of keys.
+//
+// A Keyed builds a Routine and a data value for each key with a constructor,
+// and runs the routines under a root context set by SetContext; nothing runs
+// before it is set. SetKey adds a key and SyncKeys reconciles the set with a
+// list. RemoveKey cancels the key's routine, at once or after the release
+// delay; adding the key again within the delay keeps the running routine. A
+// new context cancels and restarts every routine that has not failed. A
+// routine that returns nil stays stopped until restarted. One that returns an
+// error stays failed until SetKey or SetContext asks for a restart, or
+// retries after backoff when WithRetry or WithBackoff is set. RestartRoutine cancels and reruns a routine with its
+// data, while ResetRoutine calls the constructor again.
+//
+// KeyedRefCount keeps a key in the set while any KeyedRef holds it, and
+// removes it when the last reference is released.
 package keyed
 
 import (

@@ -1,3 +1,10 @@
+// Package backoff configures retry backoff with a protobuf message.
+//
+// A Backoff message selects an exponential or constant kind and its
+// intervals in milliseconds; Construct builds the matching cbackoff.BackOff.
+// Unset fields take defaults: exponential starts at 800ms, multiplies by 1.8
+// and caps at 20s with no elapsed-time limit, and constant waits 5s. An empty
+// message constructs the exponential default.
 package backoff
 
 import (

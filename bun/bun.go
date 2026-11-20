@@ -1,3 +1,8 @@
+// Package bun runs scripts with the Bun runtime.
+//
+// ResolveBunPath uses bun from PATH, or downloads it into a state directory
+// with autobun when PATH lacks it; with no state directory it fails instead.
+// BunExec builds the command for a script.
 package bun
 
 import (

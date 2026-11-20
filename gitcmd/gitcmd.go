@@ -1,3 +1,4 @@
+// Package gitcmd lists the files of a Git work tree through the git command.
 package gitcmd
 
 import (

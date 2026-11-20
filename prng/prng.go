@@ -1,3 +1,8 @@
+// Package prng builds deterministic random sources seeded by data.
+//
+// BuildSeededRand hashes the seed data with SHA-256 into a ChaCha8 source, so
+// equal seeds give equal streams. SourceToReader and BuildSeededReader read
+// such a source as bytes. The readers are not safe for concurrent use.
 package prng
 
 import (

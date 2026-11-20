@@ -1,8 +1,9 @@
+// Package commonprefix finds and trims the longest common prefix of strings.
 package commonprefix
 
 import "strings"
 
-// TrimPrefix removes the longest common prefix from all provided strings
+// TrimPrefix removes the longest common prefix from all provided strings.
 func TrimPrefix(strs ...string) {
 	p := Prefix(strs...)
 	if p == "" {
@@ -13,8 +14,9 @@ func TrimPrefix(strs ...string) {
 	}
 }
 
-// Prefix returns the longest common prefix of the provided strings
-// https://leetcode.com/problems/longest-common-prefix/discuss/374737/golang-runtime-0ms-simple-solution
+// Prefix returns the longest common prefix of the provided strings.
+//
+// Adapted from https://leetcode.com/problems/longest-common-prefix/discuss/374737/golang-runtime-0ms-simple-solution
 func Prefix(strs ...string) string {
 	if len(strs) == 0 {
 		return ""

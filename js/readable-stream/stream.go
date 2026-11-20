@@ -1,5 +1,8 @@
 //go:build js
 
+// Package stream reads a browser ReadableStream as an io.ReadCloser.
+//
+// It builds only for js.
 package stream
 
 import (

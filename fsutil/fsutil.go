@@ -1,3 +1,6 @@
+// Package fsutil holds filesystem helpers: clearing, creating and checking
+// directories, rewriting paths relative to a base, and copying or moving
+// files.
 package fsutil
 
 import (

@@ -1,3 +1,12 @@
+// Package ccontainer holds a single value that callers can wait on.
+//
+// A CContainer guards one value with a Broadcast. SetValue and SwapValue
+// wake waiters only when the value changes, judged by ==, a comparator or
+// EqualVT. WaitValue waits for a non-empty value, WaitValueChange for one
+// that differs from a given value, WaitValueEmpty for the empty value, and
+// WaitValueWithValidator for any value the validator accepts; each also
+// returns on an optional error channel. Watchable exposes the read and wait
+// side, and WatchChanges calls back on each change.
 package ccontainer
 
 import (

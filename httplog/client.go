@@ -1,3 +1,11 @@
+// Package httplog logs HTTP requests and responses with logrus.
+//
+// On the client side, DoRequest, DoRequestWithTransport and
+// DoRequestWithClient log one request, and NewLoggedClient and
+// NewLoggedRoundTripper wrap a client or transport so every request is
+// logged. Errors are always logged and successes only when verbose is set; a
+// nil logger disables logging. On the server side, LoggingMiddleware logs
+// each request with its response status.
 package httplog
 
 import (
@@ -62,6 +70,7 @@ func NewLoggedClient(le *logrus.Entry, client HttpClient, verbose bool) HttpClie
 
 // HttpClient can perform http requests.
 type HttpClient interface {
+	// Do sends the request and returns its response.
 	Do(req *http.Request) (*http.Response, error)
 }
 

@@ -1,3 +1,10 @@
+// Package filter matches strings against a protobuf StringFilter.
+//
+// A StringFilter combines conditions: empty, not empty, an exact value, one
+// of several values, a regular expression, a prefix, a suffix and a
+// substring. A value
+// matches when it meets every condition that is set, and a nil filter
+// matches everything. Validate checks that the expression compiles.
 package filter
 
 import (

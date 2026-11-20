@@ -1,3 +1,10 @@
+// Package unique tracks a set of values by key and reports what changed.
+//
+// KeyedList and KeyedMap take a key function or map keys and a comparator.
+// SetValues replaces the set, AppendValues adds to it, and RemoveValues and
+// RemoveKeys remove from it; each calls the changed callback for every key
+// added, removed or changed, and keeps the old value when the comparator
+// finds the new one equal.
 package unique
 
 import (

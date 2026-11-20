@@ -12,7 +12,7 @@ type WriteCloser struct {
 	close    func() error
 }
 
-// NewWriteCloser builds a new write closer
+// NewWriteCloser builds a new write closer.
 func NewWriteCloser(wr io.Writer, close func() error) *WriteCloser {
 	return &WriteCloser{
 		wr:    wr,

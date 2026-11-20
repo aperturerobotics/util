@@ -1,3 +1,4 @@
+// Package result holds a comparable value and error pair.
 package result
 
 // Result contains the result tuple of an operation.
