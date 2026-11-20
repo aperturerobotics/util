@@ -40,8 +40,13 @@ func PadInPlace(data []byte) []byte {
 
 // UnpadInPlace removes padding according to the appended length byte.
 func UnpadInPlace(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return nil, errors.New("padded data is empty")
+	}
+
+	// The trailer byte and the padding it counts must fit in the data.
 	paddingLen := int(data[len(data)-1])
-	if paddingLen >= len(data)-1 || paddingLen >= alignPaddingTo || paddingLen < 0 {
+	if paddingLen > len(data)-1 || paddingLen >= alignPaddingTo {
 		return nil, errors.Errorf(
 			"%d padding indicated but message is %d bytes",
 			paddingLen,
