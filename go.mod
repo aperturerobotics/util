@@ -6,11 +6,11 @@ require (
 	github.com/Microsoft/go-winio v0.6.4
 	github.com/aperturerobotics/common v0.38.4 // master
 	github.com/aperturerobotics/fastjson v0.1.2-0.20261024220211-b654d1d5b5aa
-	github.com/aperturerobotics/fsnotify v1.9.1-0.20261007093243-45a75ed654f0 // master
-	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20261028131920-f644656fc4a7 // latest
+	github.com/aperturerobotics/fsnotify v1.9.1-0.20261120090407-765f22ccaa33 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20261120061248-f1c7d6295149 // latest
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.10.2
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 )
 
 require (
