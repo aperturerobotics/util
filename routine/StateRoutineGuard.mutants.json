@@ -1,0 +1,9 @@
+[
+  {"name":"publish state before updating its bound routine","replace":[["bound' = IF f THEN s ELSE 0","bound' = IF f THEN state ELSE 0"]],"expect":"AtomicState"},
+  {"name":"replace without canceling the previous routine","replace":[["canceled' = canceled \\cup (IF current # 0 THEN {current} ELSE {})","canceled' = canceled"]],"expect":"ReplacedCanceled"},
+  {"name":"forget the predecessor across a nil routine gap","replace":[["[predecessor EXCEPT ![n] = tail]","[predecessor EXCEPT ![n] = current]"]],"expect":"ReplacementOrdering"},
+  {"name":"invoke before the predecessor exits","replace":[["/\\ predecessor[i] \\in closed\n  /\\ i \\notin canceled","/\\ TRUE\n  /\\ i \\notin canceled"]],"expect":"ReplacementOrdering"},
+  {"name":"close a canceled queued generation before its predecessor","replace":[["/\\ predecessor[i] \\in closed\n  /\\ phase' = [phase EXCEPT ![i] = \"exited\"]","/\\ TRUE\n  /\\ phase' = [phase EXCEPT ![i] = \"exited\"]"]],"expect":"CompletionChain"},
+  {"name":"return the current pointer instead of the retained completion fence","replace":[["returned' = tail","returned' = current"]],"expect":"ReturnedFence"},
+  {"name":"capture the previous state for the new routine","replace":[["[captured EXCEPT ![n] = s]","[captured EXCEPT ![n] = state]"]],"expect":"CapturedState"}
+]
