@@ -59,40 +59,39 @@ func (b *Backoff) Validate(allowEmpty bool) error {
 }
 
 // constructExpo constructs an exponential backoff.
+//
+// A zero MaxElapsedTime passes through as zero, which cbackoff treats as no
+// elapsed-time limit. The constructor applies the options and then resets, so
+// the first interval is the initial interval and elapsed time starts here.
 func (b *Backoff) constructExpo() backoff.BackOff {
-	expo := backoff.NewExponentialBackOff()
+	// Unset intervals and multiplier take the package defaults.
 	opts := b.GetExponential()
-
 	initialInterval := opts.GetInitialInterval()
 	if initialInterval == 0 {
-		// default to 800ms
 		initialInterval = 800
 	}
-	expo.InitialInterval = time.Duration(initialInterval) * time.Millisecond
-
 	multiplier := opts.GetMultiplier()
 	if multiplier == 0 {
 		multiplier = 1.8
 	}
-	expo.Multiplier = float64(multiplier)
-
 	maxInterval := opts.GetMaxInterval()
 	if maxInterval == 0 {
 		maxInterval = 20000
 	}
-	expo.MaxInterval = time.Duration(maxInterval) * time.Millisecond
-	expo.RandomizationFactor = float64(opts.GetRandomizationFactor())
-	if opts.GetMaxElapsedTime() == 0 {
-		expo.MaxElapsedTime = 0
-	} else {
-		expo.MaxElapsedTime = time.Duration(opts.GetMaxElapsedTime()) * time.Millisecond
-	}
-	expo.Reset()
-	return expo
+
+	// Construction applies the options and starts the backoff.
+	return backoff.NewExponentialBackOff(
+		backoff.WithInitialInterval(time.Duration(initialInterval)*time.Millisecond),
+		backoff.WithMultiplier(float64(multiplier)),
+		backoff.WithMaxInterval(time.Duration(maxInterval)*time.Millisecond),
+		backoff.WithRandomizationFactor(float64(opts.GetRandomizationFactor())),
+		backoff.WithMaxElapsedTime(time.Duration(opts.GetMaxElapsedTime())*time.Millisecond),
+	)
 }
 
 // constructConstant constructs a constant backoff.
 func (b *Backoff) constructConstant() backoff.BackOff {
+	// An unset interval waits 5s.
 	dur := b.GetConstant().GetInterval()
 	if dur == 0 {
 		dur = 5000
