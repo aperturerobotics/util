@@ -104,7 +104,10 @@ func TestStateRoutineContainer(t *testing.T) {
 	<-time.After(time.Millisecond * 50)
 	checkVal(2)
 
-	// expect nothing happened (no difference)
+	// expect nothing happened (no difference) once the routine has returned
+	if err := k.WaitExited(ctx, false, nil); err != nil {
+		t.Fatal(err.Error())
+	}
 	if _, changed, reset, running := k.SetState(2); changed || reset || running {
 		t.FailNow()
 	}
@@ -163,8 +166,9 @@ func TestStateRoutineContainer(t *testing.T) {
 	}
 }
 
-// TestStateRoutineContainerSwapValue checks the results SwapValue reports for
-// a nil callback, the same value, a value compare finds equal and a change.
+// TestStateRoutineContainerSwapValue checks the results SwapValue and SetState
+// report for a nil callback, the same value, a value compare finds equal and a
+// change. An unchanged state still reports the live routine as running.
 func TestStateRoutineContainerSwapValue(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -185,7 +189,7 @@ func TestStateRoutineContainerSwapValue(t *testing.T) {
 	}{
 		{"change", func(int) int { return 1 }, 1, true, true},
 		{"same value", func(v int) int { return v }, 1, false, true},
-		{"compare equal", func(int) int { return 11 }, 1, false, false},
+		{"compare equal", func(int) int { return 11 }, 1, false, true},
 		{"nil callback", nil, 1, false, true},
 	}
 	for _, c := range cases {
@@ -193,6 +197,9 @@ func TestStateRoutineContainerSwapValue(t *testing.T) {
 		if next != c.next || changed != c.changed || reset || running != c.running {
 			t.Fatalf("%s: got next=%v changed=%v reset=%v running=%v", c.name, next, changed, reset, running)
 		}
+	}
+	if _, changed, reset, running := k.SetState(21); changed || reset || !running {
+		t.Fatalf("SetState unchanged: got changed=%v reset=%v running=%v", changed, reset, running)
 	}
 	if st := k.GetState(); st != 1 {
 		t.Fatalf("state %v, want 1", st)

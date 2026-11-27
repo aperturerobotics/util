@@ -88,7 +88,9 @@ func (s *StateRoutineContainer[T]) GetState() T {
 
 // SetState sets the state in the StateRoutineContainer.
 //
-// Returns if the state changed and if the routine is running.
+// Returns if the state changed and if the routine is running after the call.
+// running reports the routine whether or not the state changed, so an unchanged
+// state with a live routine reports running=true.
 // If reset=true the existing routine was canceled or restarted.
 func (s *StateRoutineContainer[T]) SetState(state T) (waitReturn <-chan struct{}, changed, reset, running bool) {
 	waitReturn, reset, running = s.rc.transition(func() (Routine, bool) {
@@ -99,31 +101,24 @@ func (s *StateRoutineContainer[T]) SetState(state T) (waitReturn <-chan struct{}
 		s.s = state
 		return s.routineLocked(), true
 	})
-	// An unchanged state reports running=false, as callers rely on.
-	running = running && changed
 	return
 }
 
 // SwapValue locks the container, calls the callback, and stores the returned state.
 //
-// Returns the updated value and if the state changed.
+// Returns the updated value, if the state changed and if the routine is
+// running after the call, whether or not the state changed.
 // If reset=true returns a channel which closes when the previous instance has exited.
 func (s *StateRoutineContainer[T]) SwapValue(cb func(val T) T) (nextState T, waitReturn <-chan struct{}, changed, reset, running bool) {
-	var equal bool
 	waitReturn, reset, running = s.rc.transition(func() (Routine, bool) {
-		// A nil callback or the same value keeps the state.
+		// A nil callback, the same value or one compare finds equal keeps the
+		// state.
 		nextState = s.s
 		if cb == nil {
 			return nil, false
 		}
 		next := cb(nextState)
-		if next == nextState {
-			return nil, false
-		}
-
-		// A value compare finds equal keeps the state too.
-		equal = s.compare != nil && s.compare(nextState, next)
-		if equal {
+		if next == nextState || (s.compare != nil && s.compare(nextState, next)) {
 			return nil, false
 		}
 
@@ -132,9 +127,6 @@ func (s *StateRoutineContainer[T]) SwapValue(cb func(val T) T) (nextState T, wai
 		nextState, s.s = next, next
 		return s.routineLocked(), true
 	})
-	// A new value that compare finds equal reports running=false, as SetState
-	// does for an unchanged state.
-	running = running && !equal
 	return
 }
 
