@@ -210,6 +210,22 @@ func (k *RoutineContainer) setRoutineLocked(routine Routine, broadcast func()) (
 	return prevExitedCh, wasReset
 }
 
+// transition runs update while the container's lock is held. When update
+// returns install, the routine it returns replaces the current one, as
+// SetRoutine does. The lock also guards state that an owner keeps beside the
+// routine, such as StateRoutineContainer's state, so the owner's change and the
+// routine replacement it implies happen as one step. update must not call the
+// container. running reports the routine after the transition.
+func (k *RoutineContainer) transition(update func() (next Routine, install bool)) (waitReturn <-chan struct{}, reset, running bool) {
+	k.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if next, install := update(); install {
+			waitReturn, reset = k.setRoutineLocked(next, broadcast)
+		}
+		running = k.getRunningLocked()
+	})
+	return
+}
+
 // RestartRoutine restarts the existing routine (if set).
 // Returns if the routine was restarted.
 // Returns false if the context is currently nil or the routine is unset.

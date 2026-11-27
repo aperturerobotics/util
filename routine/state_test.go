@@ -162,3 +162,39 @@ func TestStateRoutineContainer(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+// TestStateRoutineContainerSwapValue checks the results SwapValue reports for
+// a nil callback, the same value, a value compare finds equal and a change.
+func TestStateRoutineContainerSwapValue(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	sameDigit := func(a, b int) bool { return a%10 == b%10 }
+	k := NewStateRoutineContainer[int](sameDigit)
+	k.SetContext(ctx, false)
+	k.SetStateRoutine(func(ctx context.Context, st int) error {
+		<-ctx.Done()
+		return context.Canceled
+	})
+
+	cases := []struct {
+		name    string
+		cb      func(int) int
+		next    int
+		changed bool
+		running bool
+	}{
+		{"change", func(int) int { return 1 }, 1, true, true},
+		{"same value", func(v int) int { return v }, 1, false, true},
+		{"compare equal", func(int) int { return 11 }, 1, false, false},
+		{"nil callback", nil, 1, false, true},
+	}
+	for _, c := range cases {
+		next, _, changed, reset, running := k.SwapValue(c.cb)
+		if next != c.next || changed != c.changed || reset || running != c.running {
+			t.Fatalf("%s: got next=%v changed=%v reset=%v running=%v", c.name, next, changed, reset, running)
+		}
+	}
+	if st := k.GetState(); st != 1 {
+		t.Fatalf("state %v, want 1", st)
+	}
+}

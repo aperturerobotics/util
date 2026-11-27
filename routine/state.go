@@ -15,9 +15,10 @@ type StateRoutineContainer[T comparable] struct {
 	// if nil restarts the routine every time SetState is called
 	compare func(t1, t2 T) bool
 	// stateRoutine contains the state routine function
+	// guarded by rc's transition lock
 	stateRoutine StateRoutine[T]
 	// s contains the current state
-	// guarded by rc.bcast
+	// guarded by rc's transition lock
 	s T
 }
 
@@ -78,8 +79,9 @@ func NewStateRoutineContainerWithLoggerVT[T proto.EqualVT[T]](le *logrus.Entry, 
 // GetState returns the immediate state in the StateRoutineContainer.
 func (s *StateRoutineContainer[T]) GetState() T {
 	var state T
-	s.rc.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+	s.rc.transition(func() (Routine, bool) {
 		state = s.s
+		return nil, false
 	})
 	return state
 }
@@ -89,24 +91,16 @@ func (s *StateRoutineContainer[T]) GetState() T {
 // Returns if the state changed and if the routine is running.
 // If reset=true the existing routine was canceled or restarted.
 func (s *StateRoutineContainer[T]) SetState(state T) (waitReturn <-chan struct{}, changed, reset, running bool) {
-	s.rc.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		waitReturn, changed, reset, running = s.setStateLocked(state, broadcast)
-	})
-	return
-}
-
-// setStateLocked compares and updates the state when mtx is locked.
-func (s *StateRoutineContainer[T]) setStateLocked(state T, broadcast func()) (waitReturn <-chan struct{}, changed, reset, running bool) {
-	if s.compare == nil {
-		changed = true
-	} else {
-		changed = !s.compare(s.s, state)
-	}
-	if changed {
+	waitReturn, reset, running = s.rc.transition(func() (Routine, bool) {
+		changed = s.compare == nil || !s.compare(s.s, state)
+		if !changed {
+			return nil, false
+		}
 		s.s = state
-		waitReturn, reset, running = s.updateStateRoutineLocked(broadcast)
-		broadcast()
-	}
+		return s.routineLocked(), true
+	})
+	// An unchanged state reports running=false, as callers rely on.
+	running = running && changed
 	return
 }
 
@@ -115,24 +109,32 @@ func (s *StateRoutineContainer[T]) setStateLocked(state T, broadcast func()) (wa
 // Returns the updated value and if the state changed.
 // If reset=true returns a channel which closes when the previous instance has exited.
 func (s *StateRoutineContainer[T]) SwapValue(cb func(val T) T) (nextState T, waitReturn <-chan struct{}, changed, reset, running bool) {
-	s.rc.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		stateBefore := s.s
-		if cb != nil {
-			nextState = cb(stateBefore)
-			changed = nextState != stateBefore
-		} else {
-			nextState = stateBefore
+	var equal bool
+	waitReturn, reset, running = s.rc.transition(func() (Routine, bool) {
+		// A nil callback or the same value keeps the state.
+		nextState = s.s
+		if cb == nil {
+			return nil, false
+		}
+		next := cb(nextState)
+		if next == nextState {
+			return nil, false
 		}
 
-		if changed {
-			waitReturn, changed, reset, running = s.setStateLocked(nextState, broadcast)
-			if !changed {
-				nextState = stateBefore
-			}
-		} else {
-			running = s.rc.getRunningLocked()
+		// A value compare finds equal keeps the state too.
+		equal = s.compare != nil && s.compare(nextState, next)
+		if equal {
+			return nil, false
 		}
+
+		// Store the new state and restart the routine with it.
+		changed = true
+		nextState, s.s = next, next
+		return s.routineLocked(), true
 	})
+	// A new value that compare finds equal reports running=false, as SetState
+	// does for an unchanged state.
+	running = running && !equal
 	return
 }
 
@@ -144,26 +146,23 @@ func (s *StateRoutineContainer[T]) SwapValue(cb func(val T) T) (nextState T, wai
 // If SetContext has not been called or SetState is empty, returns false for running.
 // Note: does not check if routine is equal to the current routine func (cannot compare generic funcs).
 func (s *StateRoutineContainer[T]) SetStateRoutine(routine StateRoutine[T]) (waitReturn <-chan struct{}, reset, running bool) {
-	s.rc.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+	return s.rc.transition(func() (Routine, bool) {
 		s.stateRoutine = routine
-		waitReturn, reset, running = s.updateStateRoutineLocked(broadcast)
+		return s.routineLocked(), true
 	})
-	return
 }
 
-// updateStateRoutineLocked updates the state or the s.stateRoutine and calls setRoutineLocked.
-func (s *StateRoutineContainer[T]) updateStateRoutineLocked(broadcast func()) (waitReturn <-chan struct{}, reset, running bool) {
+// routineLocked binds the state routine to the current state. It returns nil,
+// which stops the routine, when either is unset. Call it inside a transition.
+func (s *StateRoutineContainer[T]) routineLocked() Routine {
 	var empty T
 	st, routine := s.s, s.stateRoutine
-	var setRoutine Routine
-	if routine != nil && st != empty {
-		setRoutine = func(ctx context.Context) error {
-			return routine(ctx, st)
-		}
+	if routine == nil || st == empty {
+		return nil
 	}
-	waitReturn, reset = s.rc.setRoutineLocked(setRoutine, broadcast)
-	running = s.rc.getRunningLocked()
-	return
+	return func(ctx context.Context) error {
+		return routine(ctx, st)
+	}
 }
 
 // SetContext updates the root context.
